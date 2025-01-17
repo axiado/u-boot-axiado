@@ -9,6 +9,7 @@
 
 #include <common.h>
 #include <command.h>
+#include <eeprom.h>
 #include <environment.h>
 #include <linux/stddef.h>
 #if defined(CONFIG_I2C_ENV_EEPROM_BUS)

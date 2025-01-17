@@ -10,6 +10,7 @@
  */
 
 #include <common.h>
+#include <eeprom.h>
 #include <ioports.h>
 #include <mpc83xx.h>
 #include <i2c.h>

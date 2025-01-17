@@ -5,6 +5,7 @@
  * Andreas Bießmann <andreas.biessmann@corscience.de>
  */
 #include <common.h>
+#include <eeprom.h>
 #include <i2c.h>
 
 #include "tricorder-eeprom.h"

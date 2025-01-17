@@ -6,6 +6,7 @@
  */
 
 #include <common.h>
+#include <eeprom.h>
 #include <linux/errno.h>
 #include <asm/gpio.h>
 #include <asm/io.h>
