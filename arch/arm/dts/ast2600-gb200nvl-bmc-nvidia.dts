@@ -60,26 +60,6 @@
 	status = "okay";
 };
 
-&mdio {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = < &pinctrl_mdio4_default>;
-	#address-cells = <1>;
-	#size-cells = <0>;
-	ethphy3: ethernet-phy@2 {
-		reg = <2>;
-	};
-};
-
-&mac0 {
-	status = "okay";
-	reg = <0x1e660000 0x180>, <0x1e650018 0x4>;
-	phy-mode = "rgmii-rxid";
-	phy-handle = <&ethphy3>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_rgmii1_default>;
-};
-
 &fmc {
 	status = "okay";
 
