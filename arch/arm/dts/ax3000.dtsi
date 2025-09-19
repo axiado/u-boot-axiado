@@ -1,0 +1,144 @@
+/*
+ * DTS file for Axiado AX3000
+ * Copyright (c) 2021-22 Axiado Corporation (or its affiliates). All rights reserved.
+ * Use, modification and redistribution of this file is subject to your possession
+ * of a valid End User License Agreement (EULA) for the Axiado Product of which
+ * these sources are part of and your compliance with all applicable terms and
+ * conditions of such licence agreement.
+ */
+
+/dts-v1/;
+
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+
+/memreserve/ 0x3c0013a0 0x00000008;
+
+/ {
+	aliases {
+		serial0 = &uart0;
+	};
+
+	cpus {
+	#address-cells = <2>;
+	#size-cells = <0>;
+
+		cpu0: cpu@0 {
+			compatible = "arm,cortex-a53";
+			device_type = "cpu";
+			reg = <0x0 0x0>;
+			enable-method = "spin-table";
+			cpu-release-addr = <0x0 0x3c0013a0>;
+		};
+		cpu1: cpu@1 {
+			compatible = "arm,cortex-a53";
+			device_type = "cpu";
+			reg = <0x0 0x1>;
+			enable-method = "spin-table";
+			cpu-release-addr = <0x0 0x3c0013a0>;
+		};		
+		cpu2: cpu@2 {
+			compatible = "arm,cortex-a53";
+			device_type = "cpu";
+			reg = <0x0 0x2>;
+			enable-method = "spin-table";
+			cpu-release-addr = <0x0 0x3c0013a0>;
+		};
+		cpu3: cpu@3 {
+			compatible = "arm,cortex-a53";
+			device_type = "cpu";
+			reg = <0x0 0x3>;
+			enable-method = "spin-table";
+			cpu-release-addr = <0x0 0x3c0013a0>;
+		};
+	};
+
+	timer {
+		compatible = "arm,armv8-timer";
+		interrupt-parent = <&gic500>;
+		interrupts = <1 13 4>,
+				<1 14 4>,
+				 <1 11 4>,
+				 <1 10 4>;
+		arm,cpu-registers-not-fw-configured;
+	};
+
+	clocks {
+		refclk: refclk {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <125000000>;
+		};
+
+		clk_ahb: clk_ahb {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <200000000>;
+		};
+
+		clk_xin: clk_xin {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <200000000>;
+		};
+	};
+
+	soc: soc {
+		compatible = "simple-bus";
+		#address-cells = <2>;
+		#size-cells = <2>;
+		interrupt-parent = <&gic500>;
+		ranges;
+
+		gic500: interrupt-controller@80300000 {
+			compatible = "arm,gic-v3";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+			#interrupt-cells = <3>;
+			interrupt-controller;
+			#redistributor-regions = <1>;
+			reg = <0x00 0x80300000 0x00 0x10000>,
+				  <0x00 0x80380000 0x00 0x80000>;
+				interrupts = <1 9 4>;
+
+			msi-controller@80340000 {
+				compatible = "arm,gic-v3-its";
+				msi-controller;
+				reg = <0x00 0x80380000 0x00 0x10000>;
+				status = "disabled";
+			};
+		};
+
+		uart0: serial@80520800 {
+			compatible = "cdns,uart-r1p12", "xlnx,xuartps";
+			interrupt-parent = <&gic500>;
+			interrupts = <0 170 4>;
+			reg = <0x00 0x80520800 0x00 0x100>;
+			clock-names = "uart_clk", "pclk";
+			clocks = <&refclk &refclk>;
+			uart-clk = <125000000>;
+			status = "disabled";
+		};
+
+		emmc_phy: emmc-phy@80801C00 {
+			compatible = "axiado,ax3000-emmc-phy";
+			reg = <0x00 0x80801C00 0x00 0x100>;
+			#phy-cells = <0>;
+		};
+
+		sdhci0: mmc0@86000000 {
+			compatible = "axiado,ax3000-sdhci";
+			reg = <0x0 0x86000000 0x00 0x1000>;
+			clock-names = "clk_xin", "clk_ahb";
+			clocks = <&clk_xin &clk_ahb>;
+			interrupt-parent = <&gic500>;
+			interrupts = <0 123 4>;
+			bus-width = <8>;
+			mmc-clk = <200000000>;
+			phys = <&emmc_phy>;
+			phy-names = "phy_arasan";
+			status = "disabled";
+		};
+	};
+};

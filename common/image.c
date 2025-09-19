@@ -1510,7 +1510,12 @@ int image_setup_linux(bootm_headers_t *images)
 	}
 
 	if (IMAGE_ENABLE_OF_LIBFDT && of_size) {
+/* for Axiado ax3000 skipping the memory setup of device tree as its already hardcoded */
+#if defined(CONFIG_AX3000_EVK)
+               ret = 0;
+#else
 		ret = image_setup_libfdt(images, *of_flat_tree, of_size, lmb);
+#endif
 		if (ret)
 			return ret;
 	}

@@ -1,0 +1,37 @@
+/*
+ * DTS file for Axiado AX3000
+ * Copyright (c) 2021-22 Axiado Corporation (or its affiliates). All rights reserved.
+ * Use, modification and redistribution of this file is subject to your possession
+ * of a valid End User License Agreement (EULA) for the Axiado Product of which
+ * these sources are part of and your compliance with all applicable terms and
+ * conditions of such licence agreement.
+ */
+
+/dts-v1/;
+
+#include "ax3000.dtsi"
+
+/ {
+	model = "Axiado AX3000-EVK";
+	compatible = "axiado,AX3000";
+	#address-cells = <2>;
+#size-cells = <2>;
+
+	chosen {
+		bootargs = "console=ttyPS0,115200 earlyprintk earlycon nr_cpus=4 maxcpus=4";
+        stdout-path = "serial0:115200";
+	};
+
+	memory@0 {
+			device_type = "memory";
+			reg = <0x00 0x3C000000 0x00 0x2000000>;
+	};
+};
+
+&uart0{
+	status = "Okay";
+};
+
+&sdhci0{
+	status = "okay";
+};

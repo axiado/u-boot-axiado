@@ -1,0 +1,15 @@
+if AX3000_EVK
+
+config SYS_BOARD
+        string
+        default "dcm3003"
+
+config SYS_VENDOR
+        string
+        default "axiado"
+
+config SYS_CONFIG_NAME
+        string
+        default "ax3000-evk"
+	
+endif

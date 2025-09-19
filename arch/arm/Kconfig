@@ -23,7 +23,8 @@ endif
 
 if ARM64
 config SYS_INIT_SP_BSS_OFFSET
-	int
+	int "Early stack offset from the .bss base address"
+	default 524288
 	help
 	  U-Boot typically uses a hard-coded value for the stack pointer
 	  before relocation. Define this option to instead calculate the
@@ -413,7 +414,7 @@ config ARM64_SUPPORT_AARCH32
 
 choice
 	prompt "Target select"
-	default TARGET_HIKEY
+	default AX3000_EVK
 
 config ARCH_AT91
 	bool "Atmel AT91"
@@ -1142,6 +1143,19 @@ config TARGET_HIKEY
 	  Support for HiKey 96boards platform. It features a HI6220
 	  SoC, with 8xA53 CPU, mali450 gpu, and 1GB RAM.
 
+config AX3000_EVK
+	bool "Support Axiado AX3000 Chip"
+	select ARM64
+	select DM
+	select DM_SERIAL
+	select ZYNQ_SERIAL
+	select GPIO_EXTRA_HEADER
+	select MMC_SDHCI_AXIADO
+	select PHY_AXIADO_EMMC
+	help
+	  Support for Axiado AX3000 version1.0. AX3000 is a quad-core
+	  64-bit ARMv8 Cortex-A53 processors.
+
 config TARGET_POPLAR
 	bool "Support Poplar 96boards Enterprise Edition Platform"
 	select ARM64
@@ -1636,6 +1650,7 @@ source "board/xilinx/Kconfig"
 source "board/xilinx/zynq/Kconfig"
 source "board/xilinx/zynqmp/Kconfig"
 source "board/zipitz2/Kconfig"
+source "board/axiado/dcm3003/Kconfig"
 
 source "arch/arm/Kconfig.debug"
 
