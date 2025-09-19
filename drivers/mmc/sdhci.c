@@ -326,7 +326,7 @@ static int sdhci_execute_tuning(struct udevice *dev, uint opcode)
 	return 0;
 }
 #endif
-static int sdhci_set_clock(struct mmc *mmc, unsigned int clock)
+int sdhci_set_clock(struct mmc *mmc, unsigned int clock)
 {
 	struct sdhci_host *host = mmc->priv;
 	unsigned int div, clk = 0, timeout;
@@ -448,6 +448,34 @@ static void sdhci_set_power(struct sdhci_host *host, unsigned short power)
 	pwr |= SDHCI_POWER_ON;
 
 	sdhci_writeb(host, pwr, SDHCI_POWER_CONTROL);
+}
+
+void sdhci_set_uhs_timing(struct sdhci_host *host)
+{
+	struct mmc *mmc = host->mmc;
+	u32 reg;
+
+	reg = sdhci_readw(host, SDHCI_HOST_CONTROL_2);
+	reg &= ~SDHCI_CTRL_UHS_MASK;
+
+	switch (mmc->selected_mode) {
+	case UHS_SDR50:
+	case MMC_HS_52:
+		reg |= SDHCI_CTRL_UHS_SDR50;
+		break;
+	case UHS_DDR50:
+	case MMC_DDR_52:
+		reg |= SDHCI_CTRL_UHS_DDR50;
+		break;
+	case UHS_SDR104:
+	case MMC_HS_200:
+		reg |= SDHCI_CTRL_UHS_SDR104;
+		break;
+	default:
+		reg |= SDHCI_CTRL_UHS_SDR12;
+	}
+
+	sdhci_writew(host, reg, SDHCI_HOST_CONTROL_2);
 }
 
 #ifdef CONFIG_DM_MMC

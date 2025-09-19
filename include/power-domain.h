@@ -144,9 +144,9 @@ static inline int power_domain_free(struct power_domain *power_domain)
 #if CONFIG_IS_ENABLED(POWER_DOMAIN)
 int power_domain_on(struct power_domain *power_domain);
 #else
-static inline int power_domain_on(struct power_domain *power_domain)
+static inline int power_domain_on(struct udevice *dev)
 {
-	return -ENOSYS;
+	return 0;
 }
 #endif
 

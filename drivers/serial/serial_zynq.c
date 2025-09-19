@@ -111,6 +111,10 @@ static int zynq_serial_setbrg(struct udevice *dev, int baudrate)
 	int ret;
 	struct clk clk;
 
+/* For Axiado Ax3000 clock is hardcoded and taken from device tree */
+#if defined(CONFIG_AX3000_EVK)
+	dev_read_u32(dev,"uart-clk", &clock);
+#else
 	ret = clk_get_by_index(dev, 0, &clk);
 	if (ret < 0) {
 		dev_err(dev, "failed to get clock\n");
@@ -130,6 +134,7 @@ static int zynq_serial_setbrg(struct udevice *dev, int baudrate)
 		return ret;
 	}
 
+#endif
 	_uart_zynq_serial_setbrg(platdata->regs, clock, baudrate);
 
 	return 0;

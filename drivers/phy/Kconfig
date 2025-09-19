@@ -174,4 +174,13 @@ config KEYSTONE_USB_PHY
 
 	  This PHY is found on some Keystone (K2) devices supporting USB.
 
+config PHY_AXIADO_EMMC
+	bool "Axiado eMMC PHY driver support"
+	depends on PHY
+	imply REGMAP
+	help
+	  Enable this to support the Axiado eMMC PHY found in the Ax3000 SoC.
+	  This PHY provides signal conditioning and DLL functionality for
+	  high-speed eMMC operations with data rates beyond 52MHz.
+
 endmenu

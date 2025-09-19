@@ -76,6 +76,7 @@
 #define  SDHCI_CTRL_8BITBUS	BIT(5)
 #define  SDHCI_CTRL_CD_TEST_INS	BIT(6)
 #define  SDHCI_CTRL_CD_TEST	BIT(7)
+#define  SDHCI_CTRL_TUNED_CLK	0x0080
 
 #define SDHCI_POWER_CONTROL	0x29
 #define  SDHCI_POWER_ON		0x01
@@ -145,6 +146,12 @@
 #define SDHCI_ACMD12_ERR	0x3C
 
 #define SDHCI_HOST_CONTROL_2        0x3E
+#define SDHCI_CTRL_UHS_MASK         0x0007
+#define SDHCI_CTRL_UHS_SDR12        0x0000
+#define SDHCI_CTRL_UHS_SDR25        0x0001
+#define SDHCI_CTRL_UHS_SDR50        0x0002
+#define SDHCI_CTRL_UHS_SDR104       0x0003
+#define SDHCI_CTRL_UHS_DDR50        0x0004
 #define SDHCI_DRIVER_STRENGTH_MASK  0x30
 #define SDHCI_DRIVER_STRENGTH_SHIFT 4
 
@@ -250,7 +257,7 @@ struct sdhci_ops {
 #endif
 	int	(*get_cd)(struct sdhci_host *host);
 	void	(*set_control_reg)(struct sdhci_host *host);
-	void	(*set_ios_post)(struct sdhci_host *host);
+	int	(*set_ios_post)(struct sdhci_host *host);
 	void	(*set_clock)(struct sdhci_host *host, u32 div);
 	int (*platform_execute_tuning)(struct mmc *host, u8 opcode);
 	void (*set_delay)(struct sdhci_host *host);
@@ -428,9 +435,11 @@ int sdhci_bind(struct udevice *dev, struct mmc *mmc, struct mmc_config *cfg);
 int add_sdhci(struct sdhci_host *host, u32 f_max, u32 f_min);
 #endif /* !CONFIG_BLK */
 
+void sdhci_set_uhs_timing(struct sdhci_host *host);
 #ifdef CONFIG_DM_MMC
 /* Export the operations to drivers */
 int sdhci_probe(struct udevice *dev);
+int sdhci_set_clock(struct mmc *mmc, unsigned int clock);
 extern const struct dm_mmc_ops sdhci_ops;
 #else
 #endif
