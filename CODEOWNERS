@@ -1,0 +1,7 @@
+# This file must be in the root of the repository
+
+# Rule: Mandatory gatekeeper
+*   @prasadax
+
+# Rule: Protect the CODEOWNERS file itself
+CODEOWNERS   @rajas-axiado @malhotra1403 @thanh-axiado @prasadax
