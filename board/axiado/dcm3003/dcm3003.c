@@ -1,11 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
-
-Copyright (c) 2021-22 Axiado Corporation (or its affiliates). All rights reserved.
-Use, modification and redistribution of this file is subject to your possession
-of a valid End User License Agreement (EULA) for the Axiado Product of which
-these sources are part of and your compliance with all applicable terms and
-conditions of such licence agreement.
-*/
+ * Copyright (c) 2021-25 Axiado Corporation (or its affiliates). All rights reserved.
+ */
 
 /* includes */
 #include <common.h>
@@ -18,7 +14,7 @@ conditions of such licence agreement.
 #include <asm/armv8/mmu.h>
 #include <asm/io.h>
 /* Global variables */
-static struct mm_region axiado_ax200_mem_map[] = {
+static struct mm_region axiado_mem_map[] = {
        {
                 .virt = 0x3C000000UL,
                 .phys = 0x3C000000UL,
@@ -30,7 +26,7 @@ static struct mm_region axiado_ax200_mem_map[] = {
         }
 };
 
-struct mm_region *mem_map = axiado_ax200_mem_map;
+struct mm_region *mem_map = axiado_mem_map;
 
 #ifdef CONFIG_MISC_INIT_R
 /**
@@ -79,7 +75,8 @@ void raw_write_cntfrq_el0(u32 cntfrq_el0)
 
 int timer_init(void)
 {
-    u32 div0_val = 0, div1_val = 0, counter_frq = 0;
+	u32 div0_val = 0, div1_val = 0;
+	u64 counter_frq = 0;
 	/* Check if PLL is locked and calculate the timer counter */
 	if((readl(CLKRST_CPU_PLL_STS_ADRS_OFFSET)) & CPU_PLL_STS_LOCK){
 		u32 reg_val = readl(CLKRST_CPU_PLL_POSTDIV_REG); /* Read the CPU frq regiter */

@@ -1,10 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
- * DTS file for Axiado AX3000
- * Copyright (c) 2021-22 Axiado Corporation (or its affiliates). All rights reserved.
- * Use, modification and redistribution of this file is subject to your possession
- * of a valid End User License Agreement (EULA) for the Axiado Product of which
- * these sources are part of and your compliance with all applicable terms and
- * conditions of such licence agreement.
+ * Copyright (c) 2021-25 Axiado Corporation (or its affiliates). All rights reserved.
  */
 
 /dts-v1/;
@@ -16,12 +12,12 @@
 
 / {
 	aliases {
-		serial0 = &uart0;
+		serial3 = &uart3;
 	};
 
 	cpus {
-	#address-cells = <2>;
-	#size-cells = <0>;
+		#address-cells = <2>;
+		#size-cells = <0>;
 
 		cpu0: cpu@0 {
 			compatible = "arm,cortex-a53";
@@ -56,10 +52,10 @@
 	timer {
 		compatible = "arm,armv8-timer";
 		interrupt-parent = <&gic500>;
-		interrupts = <1 13 4>,
-				<1 14 4>,
-				 <1 11 4>,
-				 <1 10 4>;
+		interrupts = <GIC_PPI 13 IRQ_TYPE_LEVEL_HIGH>,
+					 <GIC_PPI 14 IRQ_TYPE_LEVEL_HIGH>,
+					 <GIC_PPI 11 IRQ_TYPE_LEVEL_HIGH>,
+					 <GIC_PPI 10 IRQ_TYPE_LEVEL_HIGH>;
 		arm,cpu-registers-not-fw-configured;
 	};
 
@@ -100,7 +96,7 @@
 			#redistributor-regions = <1>;
 			reg = <0x00 0x80300000 0x00 0x10000>,
 				  <0x00 0x80380000 0x00 0x80000>;
-				interrupts = <1 9 4>;
+			interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
 
 			msi-controller@80340000 {
 				compatible = "arm,gic-v3-its";
@@ -110,10 +106,10 @@
 			};
 		};
 
-		uart0: serial@80520800 {
+		uart3: serial@80520800 {
 			compatible = "cdns,uart-r1p12", "xlnx,xuartps";
 			interrupt-parent = <&gic500>;
-			interrupts = <0 170 4>;
+			interrupts = <GIC_SPI 170 IRQ_TYPE_LEVEL_HIGH>;
 			reg = <0x00 0x80520800 0x00 0x100>;
 			clock-names = "uart_clk", "pclk";
 			clocks = <&refclk &refclk>;
@@ -133,7 +129,7 @@
 			clock-names = "clk_xin", "clk_ahb";
 			clocks = <&clk_xin &clk_ahb>;
 			interrupt-parent = <&gic500>;
-			interrupts = <0 123 4>;
+			interrupts = <GIC_SPI 123 IRQ_TYPE_LEVEL_HIGH>;
 			bus-width = <8>;
 			mmc-clk = <200000000>;
 			phys = <&emmc_phy>;
