@@ -1,9 +1,6 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0+
 /*
- * PHY driver for Axiado eMMC
- *
- * Copyright (C) 2022-2024 Axiado Corporation.
- * All rights reserved.
+ * Copyright (c) 2021-25 Axiado Corporation (or its affiliates). All rights reserved.
  */
 
 #include <common.h>

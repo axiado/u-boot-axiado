@@ -1,11 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * Copyright (C) 2024 Axiado Corporation
- *
- * Axiado Ax3000 SD Host Controller Interface
- *
- * This driver is based on the Xilinx Zynq SDHCI driver
- * (drivers/mmc/zynq_sdhci.c) with modifications for Axiado Ax3000 hardware.
+ * Copyright (c) 2021-25 Axiado Corporation (or its affiliates). All rights reserved.
  */
 
 #include <clk.h>

@@ -391,8 +391,8 @@ config MMC_SDHCI_AXIADO
 	bool "Axiado SDHCI controller"
 	depends on MMC_SDHCI && DM_MMC
 	help
-	  Enables  support for Axiado SDHCI controller present on Axiado SoCs.
-	  This device is compatible with SD 3.0 and MMC 4.3 specifications.
+	  Enables  support for Axiado SDHCI controller (Arasan based) present on
+	  Axiado SoCs. This device is compatible with SD 3.0 and MMC 4.3 specifications.
 	  The controller supports PHY for high-speed operations with eMMC
 	  interfaces and also compatible with MMC 5.1 and eMMC 3.0.
 

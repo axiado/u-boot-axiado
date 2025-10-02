@@ -23,8 +23,7 @@ endif
 
 if ARM64
 config SYS_INIT_SP_BSS_OFFSET
-	int "Early stack offset from the .bss base address"
-	default 524288
+	int
 	help
 	  U-Boot typically uses a hard-coded value for the stack pointer
 	  before relocation. Define this option to instead calculate the
