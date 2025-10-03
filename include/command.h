@@ -206,7 +206,7 @@ int board_run_command(const char *cmdline);
 #define CMD_FLAG_BOOTD		0x0002	/* command is from bootd	*/
 #define CMD_FLAG_ENV		0x0004	/* command is from the environment */
 
-#if defined(CONFIG_AX3000_EVK)
+#if defined(CONFIG_TARGET_AX3000_EVK)
 #undef CONFIG_AUTO_COMPLETE
 #undef CONFIG_SYS_LONGHELP
 #endif

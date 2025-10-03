@@ -184,7 +184,7 @@ static int axiado_sdhci_probe(struct udevice *dev)
 	host = priv->host;
     debug("%s: \n", __func__);
 	/* Get clock frequency */
-#if defined(CONFIG_AX3000_EVK)
+#if defined(CONFIG_TARGET_AX3000_EVK)
 	ret = dev_read_u32(dev, "mmc-clk", (u32 *)&clock);
 	if (ret < 0) {
 		dev_err(dev, "failed to get mmc-clk\n");
@@ -258,7 +258,7 @@ static int axiado_sdhci_probe(struct udevice *dev)
 	return 0;
 
 err:
-#if !defined(CONFIG_AX3000_EVK)
+#if !defined(CONFIG_TARGET_AX3000_EVK)
 	clk_disable(&clk);
 	clk_free(&clk);
 #endif

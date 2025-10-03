@@ -187,7 +187,7 @@
     "default_bootcmd=run bootcmd\0"
 
 /* Conditionally include settings based on board type and operation mode */
-#if defined(CONFIG_AX3000_EVK)
+#if defined(CONFIG_TARGET_AX3000_EVK)
   #if (CURRENT_OPS_MODE == ENV_SECURE_OPS)
     #define CONFIG_EXTRA_ENV_SETTINGS \
       ENV_BASIC_ENV_INFO \

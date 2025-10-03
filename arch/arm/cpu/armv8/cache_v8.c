@@ -468,7 +468,7 @@ void dcache_enable(void)
 		mmu_setup();
 	}
 /* Disable MMU and Data Cache for Axiado ax3000 */
-#if defined(CONFIG_AX3000_EVK)
+#if defined(CONFIG_TARGET_AX3000_EVK)
 	 set_sctlr(get_sctlr() & (~CR_M));
 #else
 	set_sctlr(get_sctlr() | CR_C);
