@@ -30,7 +30,7 @@
 #define CONFIG_NR_CPUS			4
 /* This address points to a start address in the DDR */
 #define CONFIG_SYS_SDRAM_BASE		0x3C000000
-#define CONFIG_SYS_SDRAM_SIZE 		32 /* Reserve 32M */
+#define CONFIG_SYS_SDRAM_SIZE 		64 /* Reserve 64M */
 #define CONFIG_SYS_INIT_SP_ADDR		(CONFIG_SYS_SDRAM_BASE + SZ_1M)
 #define CONFIG_SYS_MEMTEST_START	CONFIG_SYS_SDRAM_BASE
 #define CONFIG_SYS_MEMTEST_END          ((CONFIG_SYS_SDRAM_SIZE - 3) << 20)
@@ -68,18 +68,83 @@
     "bootside=a\0" \
     "bootcount=0\0" \
     "bootlimit=3\0" \
+    "count=0\0" \
+    "verify_result=0\0" \
+    "spr_val=0\0" \
+    "spr3_val=0\0" \
     \
     /* Define slot-specific boot commands */ \
-    "bootcmd_a=" \
-        "echo \"Loading FIT image from slot A...\"; " \
-        "fatload mmc 0:2 ${fit_addr_r} ${image_path}; " \
-        "bootm ${fit_addr_r}#${fdt_conf}\0" \
+    "bootcmd_sa=" \
+    "echo \"Loading Signed images from slot A...\"; " \
+    "fatload mmc 0:2 ${loadaddr} /kernel.asi; " \
+    "mw.l ${spr1} ${filesize}; " \
+    "fatload mmc 0:2 ${fdtaddr} ${fdt_conf}; " \
+    "mw.l ${spr2} ${filesize}; " \
+    "mw.l ${scratchpad1} ${ubootloadedimages}; " \
+    "run verify_binaries; " \
+    "run read_spr3; " \
+    "test $spr3_val = $verifiedsuccess;" \
+    "if test $? -eq 0; then " \
+        "run ubootstatus; " \
+        "echo \"Loading Signed images using booti...\"; " \
+        "setexpr newladdr $loadaddr + 0x10; " \
+        "setexpr newfaddr $fdtaddr + 0x10; " \
+        "booti $newladdr - $newfaddr; " \
+    "else " \
+        "run ubootstatus; " \
+        "echo \"ERROR Verifying Binaries. Not Loading...\"; " \
+    "fi;\0" \
     \
-    "bootcmd_b=" \
-        "echo \"Loading FIT image from slot B...\"; " \
-        "fatload mmc 0:3 ${fit_addr_r} ${image_path}; " \
-        "bootm ${fit_addr_r}#${fdt_conf}\0" \
+    "bootcmd_sb=" \
+    "echo \"Loading Signed images from slot B...\"; " \
+    "fatload mmc 0:3 ${loadaddr} /kernel.asi; " \
+    "mw.l ${spr1} ${filesize}; " \
+    "fatload mmc 0:3 ${fdtaddr} ${fdt_conf}; " \
+    "mw.l ${spr2} ${filesize}; " \
+    "mw.l ${scratchpad1} ${ubootloadedimages}; " \
+    "run verify_binaries; " \
+    "run read_spr3; " \
+    "test $spr3_val = $verifiedsuccess;" \
+    "if test $? -eq 0; then " \
+        "run ubootstatus; " \
+        "echo \"Loading Signed images using booti...\"; " \
+        "setexpr newladdr $loadaddr + 0x10; " \
+        "setexpr newfaddr $fdtaddr + 0x10; " \
+        "booti $newladdr - $newfaddr; " \
+    "else " \
+        "run ubootstatus; " \
+        "echo \"ERROR Verifying Binaries. Not Loading...\"; " \
+    "fi;\0" \
     \
+    /* Look for change in SPR1 */ \
+    "read_spr=" \
+	"setexpr.w spr_val *$scratchpad1;\0"  \
+    \
+    /*Read SPR3 for result if SPR1 verified APPS_VERIFIED_KERNEL (0x546)  */ \
+    "read_spr3=" \
+        "test ${spr_val} = ${verifydone}; " \
+	"if test $? -eq 0; then " \
+	    "setexpr.b spr3_val *$spr3; "  \
+	"else " \
+        "setenv spr3_val 0; " \
+	"fi;\0" \
+    \
+    /* Send to Verify and Endorse signed binaries */ \
+    "verify_binaries=" \
+	    "setenv count 0; " \
+	    "while test $count -lt 10; do " \
+	        "run read_spr; " \
+            "test ${spr_val} = ${ubootloadedimages}; " \
+	        "if test $? -ne 0; then " \
+	    "echo \"Verification done. spr_val = ${spr_val}\"; " \
+		"exit; " \
+	        "fi; " \
+	        "echo \"Waiting... ($count)\"; " \
+	        "sleep 1; " \
+	        "setexpr count $count + 1; " \
+	    "done; " \
+	    "echo \"Timed out waiting for status.\"; " \
+	    "exit;\0" \
     /* Boot count check and slot switching */ \
     "check_boot_count=" \
         "if test ${bootcount} -ge ${bootlimit}; then " \
@@ -103,13 +168,23 @@
 /* Basic environment settings that are common to both secure and unsecure modes
  * Update the boot-up done event by writing the 0x80620804 register
  * with 0x54d (UBOOT boot-up successful) value.
+ * spr1 AX3000_CSR_BASE_ADRS_IOCTL_2 (0x80702400)       0x08 kernel file size
+ * spr2 AX3000_CSR_BASE_ADRS_IOCTL_3 (0x80802000)       0x04 dtb file size
+ * spr3 AX3000_CSR_BASE_ADRS_IOCTL_3 (0x80802000)       0x08 result of verify
  */
+
 #define ENV_BASIC_ENV_INFO \
     "bootm_size=0x20000000\0" \
     "fdtaddr=0x3EF00000\0" \
     "loadaddr=0x3D000000\0" \
-    "scratchpad1=80620804\0" \
+    "scratchpad1=0x80620804\0" \
+    "spr1=0x80702408\0" \
+    "spr2=0x80802004\0" \
+    "spr3=0x80802008\0" \
     "ubootsuccess=54d\0" \
+    "verifydone=546\0" \
+    "verifiedsuccess=1\0" \
+    "ubootloadedimages=542\0" \
     "ubootstatus=mw.l ${scratchpad1} ${ubootsuccess}\0" \
     "bootk=run ubootstatus; booti ${loadaddr} - ${fdtaddr}\0" \
     "newloadaddr=0x4D000000\0" \
@@ -120,27 +195,35 @@
     "secure_boot=1\0" \
     /* Additional secure boot parameters will be added here in the future */ \
     "default_bootcmd=echo \"Booting in secure mode\"\0"
-
 /* DTB configuration helper commands */
 #define ENV_DTB_HELPER_SETTINGS \
     /* Command to show available DTB configurations */ \
-    "show_dtbs=" \
-        "echo \"Loading FIT image to check available DTB configurations...\"; " \
-        "if fatload mmc 0:2 ${fit_addr_r} ${image_path}; then " \
-            "echo \"\"; " \
-            "echo \"Available DTB configurations:\"; " \
-            "echo \"---------------------------\"; " \
-            "fdt addr ${fit_addr_r}; " \
-            "fdt list /configurations; " \
-            "echo \"\"; " \
-            "echo \"Current configuration: ${fdt_conf}\"; " \
-            "echo \"\"; " \
-            "echo \"To change configuration: setenv fdt_conf <config-name>\"; " \
-            "echo \"Then save with: saveenv\"; " \
+ "show_dtbs=" \
+        "echo \"Listing files to check available DTB configurations...\"; " \
+        "echo \"\"; " \
+        "echo \"Select DTB configuration file from below available DTB files. Ex: scm3000db_sb.asi.\"; " \
+        "echo \"---------------------------\"; " \
+        "if test \"${bootside}\" = \"a\"; then " \
+            "fatls mmc 0:2; " \
+            "if test $? -ne 0; then " \
+                "echo \"Error: Could not list files from slot A.\"; " \
+                "echo \"Make sure bootable media is inserted.\"; " \
+                "exit; " \
+            "fi; " \
         "else " \
-            "echo \"Error: Could not load FIT image from current slot.\"; " \
-            "echo \"Make sure bootable media is inserted.\"; " \
-        "fi\0" \
+            "fatls mmc 0:3; " \
+            "if test $? -ne 0; then " \
+                "echo \"Error: Could not list files from slot B.\"; " \
+                "echo \"Make sure bootable media is inserted.\"; " \
+                "exit; " \
+            "fi; " \
+        "fi; " \
+        "echo \"\"; " \
+        "echo \"Current configuration: ${fdt_conf}\"; " \
+        "echo \"\"; " \
+        "echo \"To change configuration: setenv fdt_conf <config-name>\"; " \
+        "echo \"Then save with: saveenv\"; " \
+        "\0" \
     \
     /* Command to set a DTB configuration */ \
     "set_dtb=" \
@@ -160,27 +243,26 @@
             "echo \"\"; " \
             "echo \"WARNING: No DTB configuration set!\"; " \
             "echo \"Please use 'run show_dtbs' to see available configurations\"; " \
-            "echo \"Then set one with 'run set_dtb <config-name>'\"; " \
+            "echo \"Then set one with 'setenv fdt_conf <config-name>'\"; " \
             "echo \"\"; " \
             "false; " \
         "else " \
             "echo \"Using DTB configuration: ${fdt_conf}\"; " \
             "true; " \
-        "fi\0"
+	"fi\0"
 
 /* Unsecure operation settings */
 #define ENV_UNSECURE_OPS_SETTINGS \
     "fit_addr_r=0x3C100000\0" \
     "image_path=/fitImage\0" \
     "bootcmd=" \
-        "run ubootstatus; " \
         "run check_dtb; " \
         "if test $? -eq 0; then " \
             "run check_boot_count; " \
             "if test ${bootside} = a; then " \
-                "run bootcmd_a; " \
+                "run bootcmd_sa; " \
             "else " \
-                "run bootcmd_b; " \
+                "run bootcmd_sb; " \
             "fi; " \
         "fi\0" \
     "secure_boot=0\0" \
