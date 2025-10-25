@@ -18,7 +18,7 @@ static struct mm_region axiado_mem_map[] = {
        {
                 .virt = 0x3C000000UL,
                 .phys = 0x3C000000UL,
-                .size = 0x02000000UL,
+                .size = 0x04000000UL,
                 .attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
                          PTE_BLOCK_INNER_SHARE 
         }, {
