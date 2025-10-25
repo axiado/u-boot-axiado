@@ -180,17 +180,11 @@ static int axiado_sdhci_probe(struct udevice *dev)
 	struct sdhci_host *host;
 	unsigned long clock = 0;
 	int ret;
+	struct clk clk;
 
 	host = priv->host;
     debug("%s: \n", __func__);
 	/* Get clock frequency */
-#if defined(CONFIG_TARGET_AX3000_EVK)
-	ret = dev_read_u32(dev, "mmc-clk", (u32 *)&clock);
-	if (ret < 0) {
-		dev_err(dev, "failed to get mmc-clk\n");
-		return ret;
-	}
-#else
 	ret = clk_get_by_index(dev, 0, &clk);
 	if (ret < 0) {
 		dev_err(dev, "failed to get clock\n");
@@ -212,7 +206,6 @@ static int axiado_sdhci_probe(struct udevice *dev)
 		clk_free(&clk);
 		return ret;
 	}
-#endif
 
 	if (device_is_compatible(dev, "axiado,ax3000-sdhci")) {
 		/* Get and init phy */

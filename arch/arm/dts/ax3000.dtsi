@@ -64,6 +64,7 @@
 			compatible = "fixed-clock";
 			#clock-cells = <0>;
 			clock-frequency = <125000000>;
+			u-boot,dm-pre-reloc;
 		};
 
 		clk_ahb: clk_ahb {
@@ -113,7 +114,7 @@
 			reg = <0x00 0x80520800 0x00 0x100>;
 			clock-names = "uart_clk", "pclk";
 			clocks = <&refclk &refclk>;
-			uart-clk = <125000000>;
+			u-boot,dm-pre-reloc;
 			status = "disabled";
 		};
 
@@ -131,7 +132,6 @@
 			interrupt-parent = <&gic500>;
 			interrupts = <GIC_SPI 123 IRQ_TYPE_LEVEL_HIGH>;
 			bus-width = <8>;
-			mmc-clk = <200000000>;
 			phys = <&emmc_phy>;
 			phy-names = "phy_arasan";
 			status = "disabled";
