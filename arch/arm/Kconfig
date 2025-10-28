@@ -1142,6 +1142,19 @@ config TARGET_HIKEY
 	  Support for HiKey 96boards platform. It features a HI6220
 	  SoC, with 8xA53 CPU, mali450 gpu, and 1GB RAM.
 
+config TARGET_AX3000_EVK
+	bool "Support Axiado AX3000 Chip"
+	select ARM64
+	select DM
+	select DM_SERIAL
+	select ZYNQ_SERIAL
+	select GPIO_EXTRA_HEADER
+	select MMC_SDHCI_AXIADO
+	select PHY_AXIADO_EMMC
+	help
+	  Support for Axiado AX3000. AX3000 is a quad-core
+	  64-bit ARMv8 Cortex-A53 processors.
+
 config TARGET_POPLAR
 	bool "Support Poplar 96boards Enterprise Edition Platform"
 	select ARM64
@@ -1636,6 +1649,7 @@ source "board/xilinx/Kconfig"
 source "board/xilinx/zynq/Kconfig"
 source "board/xilinx/zynqmp/Kconfig"
 source "board/zipitz2/Kconfig"
+source "board/axiado/dcm3003/Kconfig"
 
 source "arch/arm/Kconfig.debug"
 

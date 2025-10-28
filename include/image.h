@@ -28,7 +28,6 @@ struct fdt_region;
 
 /* new uImage format support enabled on host */
 #define IMAGE_ENABLE_FIT	1
-#define IMAGE_ENABLE_OF_LIBFDT	1
 #define CONFIG_FIT_VERBOSE	1 /* enable fit_format_{error,warning}() */
 #define CONFIG_FIT_ENABLE_RSASSA_PSS_SUPPORT 1
 #define CONFIG_FIT_ENABLE_SHA256_SUPPORT
@@ -56,6 +55,8 @@ struct fdt_region;
 #define IMAGE_ENABLE_OF_LIBFDT	CONFIG_IS_ENABLED(OF_LIBFDT)
 
 #endif /* USE_HOSTCC */
+
+#define IMAGE_SKIP_SETUP_LIBFDT	1
 
 #if IMAGE_ENABLE_FIT
 #include <hash.h>

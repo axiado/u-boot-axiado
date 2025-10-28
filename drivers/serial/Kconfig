@@ -723,7 +723,7 @@ config STM32_SERIAL
 
 config ZYNQ_SERIAL
 	bool "Cadence (Xilinx Zynq) UART support"
-	depends on DM_SERIAL && (MICROBLAZE || ARCH_ZYNQ || ARCH_ZYNQMP || ARCH_ZYNQMP_R5)
+	depends on DM_SERIAL && (MICROBLAZE || ARCH_ZYNQ || ARCH_ZYNQMP || ARCH_ZYNQMP_R5 || TARGET_AX3000_EVK)
 	help
 	  This driver supports the Cadence UART. It is found e.g. in Xilinx
 	  Zynq/ZynqMP.

@@ -146,7 +146,7 @@ int power_domain_on(struct power_domain *power_domain);
 #else
 static inline int power_domain_on(struct power_domain *power_domain)
 {
-	return -ENOSYS;
+	return 0;
 }
 #endif
 

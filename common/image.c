@@ -1510,7 +1510,13 @@ int image_setup_linux(bootm_headers_t *images)
 	}
 
 	if (IMAGE_ENABLE_OF_LIBFDT && of_size) {
-		ret = image_setup_libfdt(images, *of_flat_tree, of_size, lmb);
+        /* For image to skip LIBFDT setup */
+		if (IMAGE_SKIP_SETUP_LIBFDT) {
+			ret = 0;
+		}
+		else {
+			ret = image_setup_libfdt(images, *of_flat_tree, of_size, lmb);
+		}
 		if (ret)
 			return ret;
 	}

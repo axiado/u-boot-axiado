@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: GPL-2.0+
+#
+#Copyright (c) 2021-25 Axiado Corporation (or its affiliates).
+#
+
+if TARGET_AX3000_EVK
+
+config SYS_BOARD
+        string
+        default "dcm3003"
+
+config SYS_VENDOR
+        string
+        default "axiado"
+
+config SYS_CONFIG_NAME
+        string
+        default "ax3000-evk"
+
+config SYS_INIT_SP_BSS_OFFSET
+	default 524288
+endif

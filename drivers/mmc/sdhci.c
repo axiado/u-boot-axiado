@@ -455,7 +455,7 @@ void sdhci_set_uhs_timing(struct sdhci_host *host)
 	struct mmc *mmc = (struct mmc *)host->mmc;
 	u32 reg;
 
-	reg = sdhci_readw(host, SDHCI_HOST_CONTROL2);
+	reg = sdhci_readw(host, SDHCI_HOST_CONTROL_2);
 	reg &= ~SDHCI_CTRL_UHS_MASK;
 
 	switch (mmc->selected_mode) {
@@ -475,7 +475,7 @@ void sdhci_set_uhs_timing(struct sdhci_host *host)
 		reg |= SDHCI_CTRL_UHS_SDR12;
 	}
 
-	sdhci_writew(host, reg, SDHCI_HOST_CONTROL2);
+	sdhci_writew(host, reg, SDHCI_HOST_CONTROL_2);
 }
 
 #ifdef CONFIG_DM_MMC
