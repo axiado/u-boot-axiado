@@ -1,7 +1,7 @@
 
 # SPDX-License-Identifier: GPL-2.0+
 #
-# Copyright (c) 2021-25 Axiado Corporation (or its affiliates). All rights reserved.
+# Copyright (c) 2021-25 Axiado Corporation (or its affiliates).
 
 CONFIG_ARM=y
 CONFIG_ARM64=y
@@ -171,3 +171,5 @@ CONFIG_FS_FAT_MAX_CLUSTSIZE=65536
 CONFIG_LIB_RAND=y
 CONFIG_TARGET_AX3000_EVK=y
 CONFIG_CLK=y
+# CONFIG_AUTO_COMPLETE is not set
+# CONFIG_SYS_LONGHELP is not set
