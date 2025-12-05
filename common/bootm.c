@@ -51,6 +51,11 @@ __weak void board_quiesce_devices(void)
 {
 }
 
+__weak int board_verify_fit_image(ulong img_addr, ulong img_size)
+{
+	return 0;  /* Default: no verification required */
+}
+
 #ifdef CONFIG_LMB
 static void boot_start_lmb(bootm_headers_t *images)
 {
@@ -947,6 +952,12 @@ static const void *boot_get_kernel(cmd_tbl_t *cmdtp, int flag, int argc,
 #endif
 #if IMAGE_ENABLE_FIT
 	case IMAGE_FORMAT_FIT:
+		/* Perform board-specific FIT image verification BEFORE processing */
+		if (board_verify_fit_image(img_addr, 0)) {
+			printf("ERROR: FIT image verification failed\n");
+			return NULL;
+		}
+
 		os_noffset = fit_image_load(images, img_addr,
 				&fit_uname_kernel, &fit_uname_config,
 				IH_ARCH_DEFAULT, IH_TYPE_KERNEL,
