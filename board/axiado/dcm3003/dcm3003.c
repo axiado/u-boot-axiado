@@ -17,6 +17,11 @@
 #include <bootm.h>
 #include <mapmem.h>
 #include <linux/delay.h>
+#include <command.h>
+#include <log.h>
+
+/* Forward declarations */
+void upgrade_environment(void);
 
 /* Global variables */
 static struct mm_region axiado_mem_map[] = {
@@ -43,7 +48,93 @@ struct mm_region *mem_map = axiado_mem_map;
  */
 int misc_init_r(void)
 {
+	upgrade_environment();
 	return 0;
+}
+
+void upgrade_environment(void)
+{
+	/* Variables to force replace with default values */
+	static const char *force_replace_vars[] = {
+		"bootcmd",
+	};
+
+	/* Variables to preserve (keep user values) during upgrade */
+	static const char *preserve_vars[] = {
+		"fdt_conf",
+		"bootside",
+		/* Add more variables to preserve here */
+	};
+
+	int i;
+	const char *env_version_str;
+	unsigned long env_version;
+	int needs_full_reset = 0;
+	char env_version_buf[16];
+
+	/* Check current env_version */
+	env_version_str = env_get("env_version");
+	if (env_version_str) {
+		env_version = simple_strtoul(env_version_str, NULL, 10);
+		if (env_version < AX3000_ENV_VERSION) {
+			/* Environment is outdated, need full reset */
+			needs_full_reset = 1;
+			printf("Environment version %lu is outdated (current: %u), upgrading...\n",
+			       env_version, AX3000_ENV_VERSION);
+		} else {
+			/* Environment is up to date, only reset bootcmd */
+			needs_full_reset = 0;
+			debug("Environment version %lu is up to date (current: %u), resetting bootcmd only\n",
+			      env_version, AX3000_ENV_VERSION);
+		}
+	} else {
+		/* env_version not set, treat as outdated */
+		needs_full_reset = 1;
+		printf("Environment version not set, upgrading...\n");
+	}
+
+	/* Preserve user-set variables before upgrade */
+	const char *preserved_values[sizeof(preserve_vars) / sizeof(preserve_vars[0])];
+
+	for (i = 0; i < sizeof(preserve_vars) / sizeof(preserve_vars[0]); i++) {
+		preserved_values[i] = env_get(preserve_vars[i]);
+		if (preserved_values[i]) {
+			debug("Preserving %s: %s\n", preserve_vars[i], preserved_values[i]);
+		}
+	}
+
+	if (needs_full_reset) {
+		/* Force reset all environment variables to defaults */
+		set_default_env(NULL, 0);
+
+		/* Restore preserved user variables */
+		for (i = 0; i < sizeof(preserve_vars) / sizeof(preserve_vars[0]); i++) {
+			if (preserved_values[i]) {
+				env_set(preserve_vars[i], preserved_values[i]);
+				debug("Restored preserved %s: %s\n", preserve_vars[i], preserved_values[i]);
+			}
+		}
+
+		/* Set env_version to current version */
+		snprintf(env_version_buf, sizeof(env_version_buf), "%d", AX3000_ENV_VERSION);
+		env_set("env_version", env_version_buf);
+
+		/* Save environment */
+		env_save();
+		printf("Environment upgraded successfully.\n");
+	} else {
+		/* Only reset bootcmd to default (user should not modify it) */
+		/* Delete the variable first to bypass read-only/change-default flags */
+		env_set(force_replace_vars[0], NULL);
+
+		/* Force replace bootcmd with default value */
+		if (set_default_vars(sizeof(force_replace_vars) / sizeof(force_replace_vars[0]),
+					  (char * const *)force_replace_vars, 0) != 0) {
+			/* Save only if we successfully made changes */
+			env_save();
+			debug("bootcmd reset to default.\n");
+		}
+	}
 }
 #endif
 
