@@ -63,88 +63,36 @@
 /* Current operation mode - set to unsecure for now */
 #define CURRENT_OPS_MODE ENV_UNSECURE_OPS
 
+/* AX3000 Image Verification Register Definitions */
+#define AX3000_SCRATCHPAD1_ADDR		0x80620804
+#define AX3000_SPR1_ADDR		0x80702408
+#define AX3000_SPR3_ADDR		0x80802008
+#define AX3000_UBOOT_LOADED_IMAGES	0x542
+#define AX3000_VERIFY_DONE		0x546
+#define AX3000_UBOOT_SUCCESS		0x54d
+#define AX3000_VERIFIED_SUCCESS		1
+#define AX3000_VERIFY_TIMEOUT_SEC	10
+
 /* Dual-boot configuration */
 #define ENV_DUAL_BOOT_SETTINGS \
     "bootside=a\0" \
     "bootcount=0\0" \
     "bootlimit=3\0" \
-    "count=0\0" \
-    "verify_result=0\0" \
-    "spr_val=0\0" \
-    "spr3_val=0\0" \
     \
     /* Define slot-specific boot commands */ \
     "bootcmd_sa=" \
     "echo \"Loading Signed images from slot A...\"; " \
-    "fatload mmc 0:2 ${loadaddr} /kernel.asi; " \
-    "mw.l ${spr1} ${filesize}; " \
-    "fatload mmc 0:2 ${fdtaddr} ${fdt_conf}; " \
-    "mw.l ${spr2} ${filesize}; " \
-    "mw.l ${scratchpad1} ${ubootloadedimages}; " \
-    "run verify_binaries; " \
-    "run read_spr3; " \
-    "test $spr3_val = $verifiedsuccess;" \
-    "if test $? -eq 0; then " \
-        "run ubootstatus; " \
-        "echo \"Loading Signed images using booti...\"; " \
-        "setexpr newladdr $loadaddr + 0x10; " \
-        "setexpr newfaddr $fdtaddr + 0x10; " \
-        "booti $newladdr - $newfaddr; " \
-    "else " \
-        "run ubootstatus; " \
-        "echo \"ERROR Verifying Binaries. Not Loading...\"; " \
-    "fi;\0" \
+    "fatload mmc 0:2 ${loadaddr} /fitImage.asi; " \
+    "echo \"Loading Signed fitImage using bootm...\"; " \
+    "setexpr newladdr $loadaddr + 0x10; " \
+    "bootm ${newladdr}#${fdt_conf};\0" \
     \
     "bootcmd_sb=" \
     "echo \"Loading Signed images from slot B...\"; " \
-    "fatload mmc 0:3 ${loadaddr} /kernel.asi; " \
-    "mw.l ${spr1} ${filesize}; " \
-    "fatload mmc 0:3 ${fdtaddr} ${fdt_conf}; " \
-    "mw.l ${spr2} ${filesize}; " \
-    "mw.l ${scratchpad1} ${ubootloadedimages}; " \
-    "run verify_binaries; " \
-    "run read_spr3; " \
-    "test $spr3_val = $verifiedsuccess;" \
-    "if test $? -eq 0; then " \
-        "run ubootstatus; " \
-        "echo \"Loading Signed images using booti...\"; " \
-        "setexpr newladdr $loadaddr + 0x10; " \
-        "setexpr newfaddr $fdtaddr + 0x10; " \
-        "booti $newladdr - $newfaddr; " \
-    "else " \
-        "run ubootstatus; " \
-        "echo \"ERROR Verifying Binaries. Not Loading...\"; " \
-    "fi;\0" \
-    \
-    /* Look for change in SPR1 */ \
-    "read_spr=" \
-	"setexpr.w spr_val *$scratchpad1;\0"  \
-    \
-    /*Read SPR3 for result if SPR1 verified APPS_VERIFIED_KERNEL (0x546)  */ \
-    "read_spr3=" \
-        "test ${spr_val} = ${verifydone}; " \
-	"if test $? -eq 0; then " \
-	    "setexpr.b spr3_val *$spr3; "  \
-	"else " \
-        "setenv spr3_val 0; " \
-	"fi;\0" \
-    \
-    /* Send to Verify and Endorse signed binaries */ \
-    "verify_binaries=" \
-	    "setenv count 0; " \
-	    "while test $count -lt 10; do " \
-	        "run read_spr; " \
-            "test ${spr_val} = ${ubootloadedimages}; " \
-	        "if test $? -ne 0; then " \
-	    "echo \"Verification done. spr_val = ${spr_val}\"; " \
-		"exit; " \
-	        "fi; " \
-	        "echo \"Waiting... ($count)\"; " \
-	        "sleep 1; " \
-	        "setexpr count $count + 1; " \
-	    "done; " \
-	    "echo \"Timed out waiting for status.\"; " \
-	    "exit;\0" \
+    "fatload mmc 0:3 ${loadaddr} /fitImage.asi; " \
+    "echo \"Loading Signed fitImage using bootm...\"; " \
+    "setexpr newladdr $loadaddr + 0x10; " \
+    "bootm ${newladdr}#${fdt_conf};\0" \
     /* Boot count check and slot switching */ \
     "check_boot_count=" \
         "if test ${bootcount} -ge ${bootlimit}; then " \
@@ -165,26 +113,12 @@
         "setenv bootcount 0; " \
         "saveenv\0"
 
-/* Basic environment settings that are common to both secure and unsecure modes
- * Update the boot-up done event by writing the 0x80620804 register
- * with 0x54d (UBOOT boot-up successful) value.
- * spr1 AX3000_CSR_BASE_ADRS_IOCTL_2 (0x80702400)       0x08 kernel file size
- * spr2 AX3000_CSR_BASE_ADRS_IOCTL_3 (0x80802000)       0x04 dtb file size
- * spr3 AX3000_CSR_BASE_ADRS_IOCTL_3 (0x80802000)       0x08 result of verify
- */
-
 #define ENV_BASIC_ENV_INFO \
     "bootm_size=0x20000000\0" \
     "fdtaddr=0x3EF00000\0" \
     "loadaddr=0x3D000000\0" \
     "scratchpad1=0x80620804\0" \
-    "spr1=0x80702408\0" \
-    "spr2=0x80802004\0" \
-    "spr3=0x80802008\0" \
     "ubootsuccess=54d\0" \
-    "verifydone=546\0" \
-    "verifiedsuccess=1\0" \
-    "ubootloadedimages=542\0" \
     "ubootstatus=mw.l ${scratchpad1} ${ubootsuccess}\0" \
     "bootk=run ubootstatus; booti ${loadaddr} - ${fdtaddr}\0" \
     "newloadaddr=0x4D000000\0" \
