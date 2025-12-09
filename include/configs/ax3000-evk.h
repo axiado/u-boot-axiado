@@ -63,66 +63,16 @@
 /* Current operation mode - set to unsecure for now */
 #define CURRENT_OPS_MODE ENV_UNSECURE_OPS
 
-/* AX3000 Image Verification Register Definitions */
-#define AX3000_SCRATCHPAD1_ADDR		0x80620804
-#define AX3000_SPR1_ADDR		0x80702408
-#define AX3000_SPR3_ADDR		0x80802008
-#define AX3000_UBOOT_LOADED_IMAGES	0x542
-#define AX3000_VERIFY_DONE		0x546
-#define AX3000_UBOOT_SUCCESS		0x54d
-#define AX3000_VERIFIED_SUCCESS		1
-#define AX3000_VERIFY_TIMEOUT_SEC	10
-
 /* Dual-boot configuration */
 #define ENV_DUAL_BOOT_SETTINGS \
     "bootside=a\0" \
     "bootcount=0\0" \
-    "bootlimit=3\0" \
-    \
-    /* Define slot-specific boot commands */ \
-    "bootcmd_sa=" \
-    "echo \"Loading Signed images from slot A...\"; " \
-    "fatload mmc 0:2 ${loadaddr} /fitImage.asi; " \
-    "echo \"Loading Signed fitImage using bootm...\"; " \
-    "setexpr newladdr $loadaddr + 0x10; " \
-    "bootm ${newladdr}#${fdt_conf};\0" \
-    \
-    "bootcmd_sb=" \
-    "echo \"Loading Signed images from slot B...\"; " \
-    "fatload mmc 0:3 ${loadaddr} /fitImage.asi; " \
-    "echo \"Loading Signed fitImage using bootm...\"; " \
-    "setexpr newladdr $loadaddr + 0x10; " \
-    "bootm ${newladdr}#${fdt_conf};\0" \
-    /* Boot count check and slot switching */ \
-    "check_boot_count=" \
-        "if test ${bootcount} -ge ${bootlimit}; then " \
-            "run switch_slot; " \
-        "else " \
-            "setexpr bootcount ${bootcount} + 1; " \
-            "saveenv; " \
-        "fi\0" \
-    \
-    "switch_slot=" \
-        "if test ${bootside} = a; then " \
-            "setenv bootside b; " \
-            "echo \"Switching to slot B\"; " \
-        "else " \
-            "setenv bootside a; " \
-            "echo \"Switching to slot A\"; " \
-        "fi; " \
-        "setenv bootcount 0; " \
-        "saveenv\0"
+    "bootlimit=3\0"
 
 #define ENV_BASIC_ENV_INFO \
     "bootm_size=0x20000000\0" \
     "fdtaddr=0x3EF00000\0" \
-    "loadaddr=0x3D000000\0" \
-    "scratchpad1=0x80620804\0" \
-    "ubootsuccess=54d\0" \
-    "ubootstatus=mw.l ${scratchpad1} ${ubootsuccess}\0" \
-    "bootk=run ubootstatus; booti ${loadaddr} - ${fdtaddr}\0" \
-    "newloadaddr=0x4D000000\0" \
-    "bootgz=run ubootstatus; unzip ${loadaddr} ${newloadaddr}; booti ${newloadaddr} - ${fdtaddr}\0"
+    "loadaddr=0x3D000000\0"
 
 /* Secure operation settings for future use */
 #define ENV_SECURE_OPS_SETTINGS \
@@ -133,19 +83,43 @@
 #define ENV_DTB_HELPER_SETTINGS \
     /* Command to show available DTB configurations */ \
  "show_dtbs=" \
+        "echo \"Loading FIT image to check available DTB configurations...\"; " \
+        "if test \"${bootside}\" = \"a\"; then " \
+            "load mmc 0:2 ${loadaddr} ${image_path}; " \
+        "else " \
+            "load mmc 0:3 ${loadaddr} ${image_path}; " \
+        "fi; " \
+        "if test $? -eq 0; then " \
+            "setexpr newladdr $loadaddr + 0x10; " \
+            "echo \"\"; " \
+            "echo \"Available DTB configurations:\"; " \
+            "echo \"---------------------------\"; " \
+            "fdt addr ${newladdr}; " \
+            "fdt list /configurations; " \
+            "echo \"\"; " \
+            "echo \"Current configuration: ${fdt_conf}\"; " \
+            "echo \"\"; " \
+            "echo \"To change configuration: setenv fdt_conf <config-name>\"; " \
+            "echo \"Then save with: saveenv\"; " \
+        "else " \
+            "echo \"Error: Could not load FIT image from current slot.\"; " \
+            "echo \"Make sure bootable media is inserted.\"; " \
+        "fi\0" \
+    \
+ "show_dtbs_bkup=" \
         "echo \"Listing files to check available DTB configurations...\"; " \
         "echo \"\"; " \
         "echo \"Select DTB configuration file from below available DTB files. Ex: scm3000db_sb.asi.\"; " \
         "echo \"---------------------------\"; " \
         "if test \"${bootside}\" = \"a\"; then " \
-            "fatls mmc 0:2; " \
+            "ls mmc 0:2; " \
             "if test $? -ne 0; then " \
                 "echo \"Error: Could not list files from slot A.\"; " \
                 "echo \"Make sure bootable media is inserted.\"; " \
                 "exit; " \
             "fi; " \
         "else " \
-            "fatls mmc 0:3; " \
+            "ls mmc 0:3; " \
             "if test $? -ne 0; then " \
                 "echo \"Error: Could not list files from slot B.\"; " \
                 "echo \"Make sure bootable media is inserted.\"; " \
@@ -169,38 +143,14 @@
         "else " \
             "echo \"Usage: run set_dtb <config-name>\"; " \
             "echo \"Available configurations can be viewed with: run show_dtbs\"; " \
-        "fi\0" \
-    \
-    /* Command to check if DTB configuration is set */ \
-    "check_dtb=" \
-        "if test -z \"${fdt_conf}\"; then " \
-            "echo \"\"; " \
-            "echo \"WARNING: No DTB configuration set!\"; " \
-            "echo \"Please use 'run show_dtbs' to see available configurations\"; " \
-            "echo \"Then set one with 'setenv fdt_conf <config-name>'\"; " \
-            "echo \"\"; " \
-            "false; " \
-        "else " \
-            "echo \"Using DTB configuration: ${fdt_conf}\"; " \
-            "true; " \
-	"fi\0"
+        "fi\0"
 
 /* Unsecure operation settings */
 #define ENV_UNSECURE_OPS_SETTINGS \
-    "fit_addr_r=0x3C100000\0" \
-    "image_path=/fitImage\0" \
-    "bootcmd=" \
-        "run check_dtb; " \
-        "if test $? -eq 0; then " \
-            "run check_boot_count; " \
-            "if test ${bootside} = a; then " \
-                "run bootcmd_sa; " \
-            "else " \
-                "run bootcmd_sb; " \
-            "fi; " \
-        "fi\0" \
+    "image_path=/fitImage.asi\0" \
+    "bootcmd=ax3000_secure_boot\0" \
     "secure_boot=0\0" \
-    "default_bootcmd=run bootcmd\0"
+    "default_bootcmd=ax3000_secure_boot\0"
 
 #define AX3000_ENV_VERSION 2
 
