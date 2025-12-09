@@ -229,6 +229,16 @@ int mach_cpu_init(void)
 	return 0;
 }
 
+/* AX3000 Image Verification Register Definitions */
+#define AX3000_SCRATCHPAD1_ADDR		0x80620804
+#define AX3000_SPR1_ADDR		0x80702408
+#define AX3000_SPR3_ADDR		0x80802008
+#define AX3000_UBOOT_LOADED_IMAGES	0x542
+#define AX3000_VERIFY_DONE		0x546
+#define AX3000_UBOOT_SUCCESS		0x54d
+#define AX3000_VERIFIED_SUCCESS		1
+#define AX3000_VERIFY_TIMEOUT_SEC	10
+
 /**
  * @brief Verify FIT image using hardware verification mechanism
  *
@@ -346,3 +356,204 @@ int board_verify_fit_image(ulong img_addr, ulong img_size)
 		return -EACCES;
 	}
 }
+
+/**
+ * @brief Check boot count and switch slot if needed
+ *
+ * @return 0 on success, non-zero on failure
+ */
+static int ax3000_check_boot_count(void)
+{
+	const char *bootside;
+	const char *bootcount_str;
+	const char *bootlimit_str;
+	int bootcount, bootlimit;
+
+	bootside = env_get("bootside");
+	if (!bootside) {
+		env_set("bootside", "a");
+		bootside = "a";
+	}
+
+	bootcount_str = env_get("bootcount");
+	bootcount = bootcount_str ? simple_strtoul(bootcount_str, NULL, 10) : 0;
+
+	bootlimit_str = env_get("bootlimit");
+	bootlimit = bootlimit_str ? simple_strtoul(bootlimit_str, NULL, 10) : 3;
+
+	if (bootcount >= bootlimit) {
+		/* Switch slot */
+		if (strcmp(bootside, "a") == 0) {
+			env_set("bootside", "b");
+			printf("Switching to slot B\n");
+		} else {
+			env_set("bootside", "a");
+			printf("Switching to slot A\n");
+		}
+		env_set("bootcount", "0");
+		env_save();
+	} else {
+		/* Increment boot count */
+		char buf[16];
+		snprintf(buf, sizeof(buf), "%d", bootcount + 1);
+		env_set("bootcount", buf);
+		env_save();
+	}
+
+	return 0;
+}
+
+/**
+ * @brief Load FIT image from storage
+ *
+ * This function loads a FIT image using the 'load' command, which automatically
+ * detects the filesystem type (FAT, ext4, etc.) and handles the file loading.
+ *
+ * @param storage_type: Storage type ("mmc" for eMMC, etc.)
+ * @param dev_part: Device and partition string (e.g., "0:2" for mmc 0:2)
+ * @param filename: Path to the FIT image file
+ * @param loadaddr: Address to load the image
+ * @return 0 on success, non-zero on failure
+ */
+static int ax3000_load_fit_image(const char *storage_type, const char *dev_part,
+				  const char *filename, ulong loadaddr)
+{
+	int ret;
+	char load_cmd[256];
+	const char *filesize_str;
+
+	printf("Loading FIT image from %s %s:%s...\n", storage_type, dev_part, filename);
+
+	/* Use the 'load' command (same as original fatload/ext4load) */
+	snprintf(load_cmd, sizeof(load_cmd), "load %s %s 0x%08lx %s",
+		 storage_type, dev_part, loadaddr, filename);
+
+	ret = run_command(load_cmd, 0);
+	if (ret) {
+		printf("ERROR: Failed to load file %s\n", filename);
+		return ret;
+	}
+
+	/* Get file size from environment (set by load command) */
+	filesize_str = env_get("filesize");
+	if (!filesize_str) {
+		printf("WARNING: Could not determine loaded file size\n");
+		return -EINVAL;
+	}
+
+	printf("Loaded %s bytes to 0x%08lx\n", filesize_str, loadaddr);
+	return 0;
+}
+
+/**
+ * @brief Boot FIT image from eMMC with dual-boot slot support
+ *
+ * This function implements the boot logic that was previously done by
+ * bootcmd_sa_itb and bootcmd_sb_itb shell scripts. It:
+ * 1. Checks boot count and switches slots if needed
+ * 2. Loads FIT image from the appropriate slot (A or B)
+ * 3. Handles DTB configuration selection
+ * 4. Boots the image using bootm
+ *
+ * @return 0 on success, non-zero on failure
+ */
+int ax3000_boot_fit_image(void)
+{
+	const char *bootside;
+	const char *fdt_conf;
+	const char *image_path;
+	const char *loadaddr_str;
+	ulong loadaddr;
+	ulong bootm_addr;
+	char bootm_cmd[256];
+	int ret;
+	int mmc_dev = 0;
+	int mmc_part;
+	char dev_part_str[16];
+
+	/* Check DTB configuration */
+	fdt_conf = env_get("fdt_conf");
+	if (!fdt_conf || strlen(fdt_conf) == 0) {
+		printf("\n");
+		printf("WARNING: No DTB configuration set!\n");
+		printf("Please use 'run show_dtbs' to see available configurations\n");
+		printf("Then set one with 'setenv fdt_conf <config-name>'\n");
+		printf("\n");
+		return -EINVAL;
+	}
+
+	printf("Using DTB configuration: %s\n", fdt_conf);
+
+	/* Check boot count and switch slot if needed */
+	ret = ax3000_check_boot_count();
+	if (ret)
+		return ret;
+
+	/* Get current boot side */
+	bootside = env_get("bootside");
+	if (!bootside) {
+		bootside = "a";
+		env_set("bootside", "a");
+	}
+
+	/* Get image path */
+	image_path = env_get("image_path");
+	if (!image_path)
+		image_path = "/fitImage.asi";
+
+	/* Get load address */
+	loadaddr_str = env_get("loadaddr");
+	if (!loadaddr_str) {
+		loadaddr = CONFIG_SYS_LOAD_ADDR;
+	} else {
+		loadaddr = simple_strtoul(loadaddr_str, NULL, 16);
+	}
+
+	/* Determine partition based on boot side */
+	if (strcmp(bootside, "a") == 0) {
+		mmc_part = 2;
+		printf("Loading signed images from slot A...\n");
+	} else {
+		mmc_part = 3;
+		printf("Loading signed images from slot B...\n");
+	}
+
+	/* Load FIT image from eMMC */
+	snprintf(dev_part_str, sizeof(dev_part_str), "%d:%d", mmc_dev, mmc_part);
+	ret = ax3000_load_fit_image("mmc", dev_part_str, image_path, loadaddr);
+	if (ret)
+		return ret;
+
+	/* Calculate bootm address (loadaddr + 0x10) */
+	bootm_addr = loadaddr + 0x10;
+	printf("Loading signed fitImage using bootm...\n");
+
+	/* Build bootm command with DTB configuration */
+	snprintf(bootm_cmd, sizeof(bootm_cmd), "bootm 0x%08lx#%s", bootm_addr, fdt_conf);
+
+	/* Execute bootm command */
+	printf("Executing: %s\n", bootm_cmd);
+	ret = run_command(bootm_cmd, 0);
+
+	return ret;
+}
+
+/**
+ * @brief Command handler for ax3000_secure_boot command
+ *
+ * @param cmdtp: Command table entry
+ * @param flag: Command flags
+ * @param argc: Argument count
+ * @param argv: Argument vector
+ * @return 0 on success, non-zero on failure
+ */
+static int do_ax3000_secure_boot(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
+{
+	return ax3000_boot_fit_image();
+}
+
+U_BOOT_CMD(
+	ax3000_secure_boot, 1, 1, do_ax3000_secure_boot,
+	"Boot FIT image from eMMC with dual-boot slot support",
+	""
+);
