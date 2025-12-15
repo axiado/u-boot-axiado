@@ -19,6 +19,7 @@
 #include <linux/delay.h>
 #include <command.h>
 #include <log.h>
+#include <fdt_support.h>
 
 /* Forward declarations */
 void upgrade_environment(void);
@@ -161,6 +162,53 @@ int board_fit_config_name_match(const char *name)
 int dram_init(void)
 {
 	gd->ram_size = get_ram_size(0, mem_map[0].size);
+	return 0;
+}
+
+/**
+ * @brief Board-specific FDT fixup to restore correct cpu-release-addr
+ *
+ * arch_fixup_fdt() calls spin_table_update_dt() which overwrites
+ * cpu-release-addr with U-Boot's internal address. This function
+ * restores the correct address (0x3c0013a0) from the device tree
+ * source file, which matches what the kernel expects.
+ *
+ * @param blob: FDT blob
+ * @param bd: Board data pointer
+ * @return 0 on success
+ */
+int ft_board_setup(void *blob, bd_t *bd)
+{
+	int cpus_offset, offset;
+	const char *prop;
+	int ret;
+	u64 cpu_release_addr = 0x3c0013a0; /* From ax3000.dtsi */
+
+	cpus_offset = fdt_path_offset(blob, "/cpus");
+	if (cpus_offset < 0)
+		return 0; /* No /cpus node, nothing to fix */
+
+	/* Restore cpu-release-addr for all CPU nodes */
+	for (offset = fdt_first_subnode(blob, cpus_offset);
+	     offset >= 0;
+	     offset = fdt_next_subnode(blob, offset)) {
+		prop = fdt_getprop(blob, offset, "device_type", NULL);
+		if (!prop || strcmp(prop, "cpu"))
+			continue;
+
+		prop = fdt_getprop(blob, offset, "enable-method", NULL);
+		if (!prop || strcmp(prop, "spin-table"))
+			continue;
+
+		/* Restore the correct cpu-release-addr */
+		ret = fdt_setprop_u64(blob, offset, "cpu-release-addr",
+				      cpu_release_addr);
+		if (ret) {
+			printf("WARNING: Failed to restore cpu-release-addr\n");
+			return ret;
+		}
+	}
+
 	return 0;
 }
 
