@@ -25,19 +25,31 @@
 void upgrade_environment(void);
 
 /* Global variables */
-static struct mm_region axiado_mem_map[] = {
-       {
-                .virt = 0x3C000000UL,
-                .phys = 0x3C000000UL,
-                .size = 0x04000000UL,
-                .attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
-                         PTE_BLOCK_INNER_SHARE 
-        }, {
-                0,
-        }
+static struct mm_region axiado_ax3000_mem_map[] = {
+	{
+		.virt = 0x3C000000UL,
+		.phys = 0x3C000000UL,
+		.size = 0x02000000UL,
+		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
+		PTE_BLOCK_INNER_SHARE
+	}, {
+		.virt = 0x3D000000UL,
+		.phys = 0x3D000000UL,
+		.size = 0x23000000UL,
+		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
+		PTE_BLOCK_INNER_SHARE
+	}, {
+		.virt = 0x400000000UL,
+		.phys = 0x400000000UL,
+		.size = 0x80000000UL,
+		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
+		PTE_BLOCK_INNER_SHARE
+	},	{
+		0,
+	}
 };
 
-struct mm_region *mem_map = axiado_mem_map;
+struct mm_region *mem_map = axiado_ax3000_mem_map;
 
 #ifdef CONFIG_MISC_INIT_R
 /**
@@ -162,6 +174,32 @@ int board_fit_config_name_match(const char *name)
 int dram_init(void)
 {
 	gd->ram_size = get_ram_size(0, mem_map[0].size);
+	return 0;
+}
+
+/**
+ * @brief Set up DRAM bank sizes for device tree fixup
+ *
+ * - Region 1: 0x3C000000, size 0x2000000 (32MB)
+ * - Region 2: 0x3D000000, size 0x23000000 (560MB)
+ * - Region 3: 0x400000000, size 0x80000000 (2GB)
+ *
+ * @return 0 on success
+ */
+int dram_init_banksize(void)
+{
+	/* Memory region 1: 0x3C000000, size 0x2000000 (32MB) */
+	gd->bd->bi_dram[0].start = 0x3C000000ULL;
+	gd->bd->bi_dram[0].size = 0x2000000ULL;
+
+	/* Memory region 2: 0x3D000000, size 0x23000000 (560MB) */
+	gd->bd->bi_dram[1].start = 0x3D000000ULL;
+	gd->bd->bi_dram[1].size = 0x23000000ULL;
+
+	/* Memory region 3: 0x400000000, size 0x80000000 (2GB) */
+	gd->bd->bi_dram[2].start = 0x400000000ULL;
+	gd->bd->bi_dram[2].size = 0x80000000ULL;
+
 	return 0;
 }
 
