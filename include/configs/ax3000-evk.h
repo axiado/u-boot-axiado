@@ -86,8 +86,18 @@
         "echo \"Loading FIT image to check available DTB configurations...\"; " \
         "if test \"${bootside}\" = \"a\"; then " \
             "load mmc 0:2 ${loadaddr} ${image_path}; " \
+            "if test $? -ne 0; then " \
+                "load mmc 0:2 ${loadaddr} ${image_path}.asi; " \
+            "else " \
+                "true; " \
+            "fi; " \
         "else " \
             "load mmc 0:3 ${loadaddr} ${image_path}; " \
+            "if test $? -ne 0; then " \
+                "load mmc 0:3 ${loadaddr} ${image_path}.asi; " \
+            "else " \
+                "true; " \
+            "fi; " \
         "fi; " \
         "if test $? -eq 0; then " \
             "setexpr newladdr $loadaddr + 0x10; " \
@@ -147,7 +157,7 @@
 
 /* Unsecure operation settings */
 #define ENV_UNSECURE_OPS_SETTINGS \
-    "image_path=/fitImage.asi\0" \
+    "image_path=fitImage\0" \
     "bootcmd=ax3000_secure_boot\0" \
     "secure_boot=0\0" \
     "default_bootcmd=ax3000_secure_boot\0"

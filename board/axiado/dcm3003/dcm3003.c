@@ -516,7 +516,7 @@ static int ax3000_load_fit_image(const char *storage_type, const char *dev_part,
 
 	ret = run_command(load_cmd, 0);
 	if (ret) {
-		printf("ERROR: Failed to load file %s\n", filename);
+		printf("WARNING: Failed to load file %s\n", filename);
 		return ret;
 	}
 
@@ -546,11 +546,13 @@ static int ax3000_load_fit_image(const char *storage_type, const char *dev_part,
 int ax3000_boot_fit_image(void)
 {
 	const char *bootside;
+	const char *bootargs;
 	const char *fdt_conf;
 	const char *image_path;
 	const char *loadaddr_str;
 	ulong loadaddr;
 	ulong bootm_addr;
+	char args_str[256];
 	char bootm_cmd[256];
 	int ret;
 	int mmc_dev = 0;
@@ -585,7 +587,7 @@ int ax3000_boot_fit_image(void)
 	/* Get image path */
 	image_path = env_get("image_path");
 	if (!image_path)
-		image_path = "/fitImage.asi";
+		image_path = "fitImage";
 
 	/* Get load address */
 	loadaddr_str = env_get("loadaddr");
@@ -599,16 +601,30 @@ int ax3000_boot_fit_image(void)
 	if (strcmp(bootside, "a") == 0) {
 		mmc_part = 2;
 		printf("Loading signed images from slot A...\n");
-	} else {
+	} else if (strcmp(bootside, "b") == 0) {
 		mmc_part = 3;
 		printf("Loading signed images from slot B...\n");
+	} else {
+		/* Boot from slot A by default */
+		bootside = "a";
+		mmc_part = 2;
+		printf("Loading signed images from slot A...\n");
 	}
+
+	/* Append to current bootargs */
+	bootargs = env_get("bootargs");
+	snprintf(args_str, sizeof(args_str), "%s rootwait root=PARTLABEL=rofs-%s", bootargs, bootside);
+	env_set("bootargs", args_str);
 
 	/* Load FIT image from eMMC */
 	snprintf(dev_part_str, sizeof(dev_part_str), "%d:%d", mmc_dev, mmc_part);
 	ret = ax3000_load_fit_image("mmc", dev_part_str, image_path, loadaddr);
-	if (ret)
-		return ret;
+	if (ret) {
+		/* Try legacy name */
+		ret = ax3000_load_fit_image("mmc", dev_part_str, "fitImage.asi", loadaddr);
+		if (ret)
+			return ret;
+	}
 
 	/* Calculate bootm address (loadaddr + 0x10) */
 	bootm_addr = loadaddr + 0x10;
