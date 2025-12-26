@@ -29,6 +29,8 @@ CONFIG_SYS_PROMPT="U-Boot> "
 CONFIG_AUTOBOOT_KEYED=y
 CONFIG_AUTOBOOT_PROMPT="Press \"<Esc><Esc>\" to stop autobooting in %d seconds\n"
 CONFIG_AUTOBOOT_STOP_STR="\x1b\x1b"
+CONFIG_USE_BOOTARGS=y
+CONFIG_BOOTARGS="console=ttyPS3,115200 earlyprintk maxcpus=4 nr_cpus=4 earlycon hugepages=16"
 # CONFIG_CMD_BOOTEFI is not set
 # CONFIG_CMD_ELF is not set
 # CONFIG_CMD_GO is not set
