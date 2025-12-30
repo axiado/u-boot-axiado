@@ -65,17 +65,66 @@ int misc_init_r(void)
 	return 0;
 }
 
+/**
+ * @brief verify if the env variable is valid
+ *
+ * @param var: the env variable to be verified
+ *      index: the index of the var
+ *
+ * @return 0  : Not a valid variable
+ *         1  : a valid variable
+ */
+int validate_var(char *var, int index) {
+	const char *bs_valid_vars[] = {"a", "b"};   /* bootside valid values*/
+	const char **valid_vars[] = {
+		NULL,
+		bs_valid_vars,
+		/* Add more variables to be valided here */
+	};
+	const int number_valid_vars[] = {0, 2};
+	const char **valid_str = valid_vars[index];
+	int i;
+	if (!var) {
+		return 0;
+	}
+	if (!valid_str) {
+		return 1;  /* valid */
+	}
+	/* check all valid vars */
+	for (i = 0; i < number_valid_vars[index]; i++) {
+		if (strcmp(var, valid_str[i]) == 0) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/* structure for Force Replace Variables */
+typedef struct force_vars {
+	char* force_replace_var;
+	char* default_var;
+} force_vars_t;
+
+/* structure for Preserved Variables */
+typedef struct preserve_vars {
+	const char* preserve_var;
+	const char* default_var;
+	char preserved_value[40];
+} preserve_vars_t;
+
 void upgrade_environment(void)
 {
 	/* Variables to force replace with default values */
-	static const char *force_replace_vars[] = {
-		"bootcmd",
+	static const force_vars_t force_vars[] = {
+		{"bootcmd", "ax3000_secure_boot"},
+		{"bootside", "a"},
+		/* Add more variables to here */
 	};
 
 	/* Variables to preserve (keep user values) during upgrade */
-	static const char *preserve_vars[] = {
-		"fdt_conf",
-		"bootside",
+	static preserve_vars_t preserve_vars[] = {
+		{"fdt_conf", "", {0}},
+		{"bootside", "a", {0}},
 		/* Add more variables to preserve here */
 	};
 
@@ -84,6 +133,7 @@ void upgrade_environment(void)
 	unsigned long env_version;
 	int needs_full_reset = 0;
 	char env_version_buf[16];
+	char *temp;
 
 	/* Check current env_version */
 	env_version_str = env_get("env_version");
@@ -106,13 +156,23 @@ void upgrade_environment(void)
 		printf("Environment version not set, upgrading...\n");
 	}
 
-	/* Preserve user-set variables before upgrade */
-	const char *preserved_values[sizeof(preserve_vars) / sizeof(preserve_vars[0])];
-
 	for (i = 0; i < sizeof(preserve_vars) / sizeof(preserve_vars[0]); i++) {
-		preserved_values[i] = env_get(preserve_vars[i]);
-		if (preserved_values[i]) {
-			debug("Preserving %s: %s\n", preserve_vars[i], preserved_values[i]);
+		temp = env_get(preserve_vars[i].preserve_var);
+		if (temp) {
+			snprintf(preserve_vars[i].preserved_value,
+				sizeof(preserve_vars[i].preserved_value), "%s", temp);
+		} else {
+			preserve_vars[i].preserved_value[0] = '\0';
+		}
+		/* validate the perserved_value */
+		if (!validate_var(temp, i)) {
+			snprintf(preserve_vars[i].preserved_value,
+				sizeof(preserve_vars[i].preserved_value),"%s",
+				preserve_vars[i].default_var);
+		}
+		if (strlen(preserve_vars[i].preserved_value)) {
+			debug("Preserving %s: %s\n", preserve_vars[i].preserve_var,
+					preserve_vars[i].preserved_value);
 		}
 	}
 
@@ -122,9 +182,10 @@ void upgrade_environment(void)
 
 		/* Restore preserved user variables */
 		for (i = 0; i < sizeof(preserve_vars) / sizeof(preserve_vars[0]); i++) {
-			if (preserved_values[i]) {
-				env_set(preserve_vars[i], preserved_values[i]);
-				debug("Restored preserved %s: %s\n", preserve_vars[i], preserved_values[i]);
+			if (strlen(preserve_vars[i].preserved_value)) {
+				env_set(preserve_vars[i].preserve_var, preserve_vars[i].preserved_value);
+				debug("Restored preserved %s: %s\n", preserve_vars[i].preserve_var,
+						preserve_vars[i].preserved_value);
 			}
 		}
 
@@ -136,16 +197,25 @@ void upgrade_environment(void)
 		env_save();
 		printf("Environment upgraded successfully.\n");
 	} else {
-		/* Only reset bootcmd to default (user should not modify it) */
-		/* Delete the variable first to bypass read-only/change-default flags */
-		env_set(force_replace_vars[0], NULL);
+		/* Set the var to be default if it is needed */
+		int need_to_save = 0;
 
-		/* Force replace bootcmd with default value */
-		if (set_default_vars(sizeof(force_replace_vars) / sizeof(force_replace_vars[0]),
-					  (char * const *)force_replace_vars, 0) != 0) {
-			/* Save only if we successfully made changes */
+		for ( i= 0; i < sizeof(force_vars) / sizeof(force_vars[0]); i++) {
+			/* Save only if we need to save */
+			temp = env_get(force_vars[i].force_replace_var);
+			/* Check if it is already a default value */
+			if (!temp || strcmp(temp, force_vars[i].default_var) != 0) {
+				/* skip for checking bootcmd */
+				if (i == 0 || !validate_var(temp, i)) {
+					/* Force set it */
+					env_set(force_vars[i].force_replace_var, force_vars[i].default_var);
+					need_to_save = 1;
+				}
+			}
+		}
+		if(need_to_save) {
 			env_save();
-			debug("bootcmd reset to default.\n");
+			debug("reset to default.\n");
 		}
 	}
 }
