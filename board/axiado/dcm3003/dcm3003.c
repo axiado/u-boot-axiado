@@ -625,7 +625,8 @@ int ax3000_boot_fit_image(void)
 	const char *loadaddr_str;
 	ulong loadaddr;
 	ulong bootm_addr;
-	char args_str[256];
+	char args_str[CONFIG_SYS_CBSIZE];
+	char orig_args[CONFIG_SYS_CBSIZE] = "";
 	char bootm_cmd[256];
 	int ret;
 	int mmc_dev = 0;
@@ -684,11 +685,6 @@ int ax3000_boot_fit_image(void)
 		printf("Loading signed images from slot A...\n");
 	}
 
-	/* Append to current bootargs */
-	bootargs = env_get("bootargs");
-	snprintf(args_str, sizeof(args_str), "%s rootwait root=PARTLABEL=rofs-%s", bootargs, bootside);
-	env_set("bootargs", args_str);
-
 	/* Load FIT image from eMMC */
 	snprintf(dev_part_str, sizeof(dev_part_str), "%d:%d", mmc_dev, mmc_part);
 	ret = ax3000_load_fit_image("mmc", dev_part_str, image_path, loadaddr);
@@ -706,9 +702,21 @@ int ax3000_boot_fit_image(void)
 	/* Build bootm command with DTB configuration */
 	snprintf(bootm_cmd, sizeof(bootm_cmd), "bootm 0x%08lx#%s", bootm_addr, fdt_conf);
 
+	/* Append to current bootargs */
+	bootargs = env_get("bootargs");
+	if (bootargs)
+		snprintf(orig_args, CONFIG_SYS_CBSIZE, "%s", bootargs);
+
+	snprintf(args_str, sizeof(args_str), "%s rootwait root=PARTLABEL=rofs-%s", bootargs, bootside);
+	env_set("bootargs", args_str);
+
 	/* Execute bootm command */
 	printf("Executing: %s\n", bootm_cmd);
 	ret = run_command(bootm_cmd, 0);
+	if (ret) {
+		/* Restore original bootargs */
+		env_set("bootargs", orig_args);
+	}
 
 	return ret;
 }
