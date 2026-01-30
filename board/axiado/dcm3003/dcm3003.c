@@ -21,6 +21,8 @@
 #include <log.h>
 #include <fdt_support.h>
 
+#define MAX_STRING_SIZE 40
+
 /* Forward declarations */
 void upgrade_environment(void);
 
@@ -82,6 +84,7 @@ int validate_var(char *var, int index) {
 		/* Add more variables to be valided here */
 	};
 	const int number_valid_vars[] = {0, 2};
+	const int max_var_sizes[] = {0, 2};
 	const char **valid_str = valid_vars[index];
 	int i;
 	if (!var) {
@@ -92,7 +95,7 @@ int validate_var(char *var, int index) {
 	}
 	/* check all valid vars */
 	for (i = 0; i < number_valid_vars[index]; i++) {
-		if (strcmp(var, valid_str[i]) == 0) {
+		if (strncmp(var, valid_str[i], max_var_sizes[index]) == 0) {
 			return 1;
 		}
 	}
@@ -109,7 +112,7 @@ typedef struct force_vars {
 typedef struct preserve_vars {
 	const char* preserve_var;
 	const char* default_var;
-	char preserved_value[40];
+	char preserved_value[MAX_STRING_SIZE];
 } preserve_vars_t;
 
 void upgrade_environment(void)
@@ -170,7 +173,7 @@ void upgrade_environment(void)
 				sizeof(preserve_vars[i].preserved_value),"%s",
 				preserve_vars[i].default_var);
 		}
-		if (strlen(preserve_vars[i].preserved_value)) {
+		if (strnlen(preserve_vars[i].preserved_value, 1)) {
 			debug("Preserving %s: %s\n", preserve_vars[i].preserve_var,
 					preserve_vars[i].preserved_value);
 		}
@@ -182,7 +185,7 @@ void upgrade_environment(void)
 
 		/* Restore preserved user variables */
 		for (i = 0; i < sizeof(preserve_vars) / sizeof(preserve_vars[0]); i++) {
-			if (strlen(preserve_vars[i].preserved_value)) {
+			if (strnlen(preserve_vars[i].preserved_value, 1)) {
 				env_set(preserve_vars[i].preserve_var, preserve_vars[i].preserved_value);
 				debug("Restored preserved %s: %s\n", preserve_vars[i].preserve_var,
 						preserve_vars[i].preserved_value);
@@ -204,7 +207,7 @@ void upgrade_environment(void)
 			/* Save only if we need to save */
 			temp = env_get(force_vars[i].force_replace_var);
 			/* Check if it is already a default value */
-			if (!temp || strcmp(temp, force_vars[i].default_var) != 0) {
+			if (!temp || strncmp(temp, force_vars[i].default_var, MAX_STRING_SIZE) != 0) {
 				/* skip for checking bootcmd */
 				if (i == 0 || !validate_var(temp, i)) {
 					/* Force set it */
@@ -301,11 +304,11 @@ int ft_board_setup(void *blob, bd_t *bd)
 	     offset >= 0;
 	     offset = fdt_next_subnode(blob, offset)) {
 		prop = fdt_getprop(blob, offset, "device_type", NULL);
-		if (!prop || strcmp(prop, "cpu"))
+		if (!prop || strncmp(prop, "cpu", 4))
 			continue;
 
 		prop = fdt_getprop(blob, offset, "enable-method", NULL);
-		if (!prop || strcmp(prop, "spin-table"))
+		if (!prop || strncmp(prop, "spin-table", 11))
 			continue;
 
 		/* Restore the correct cpu-release-addr */
@@ -539,7 +542,7 @@ static int ax3000_check_boot_count(void)
 
 	if (bootcount >= bootlimit) {
 		/* Switch slot */
-		if (strcmp(bootside, "a") == 0) {
+		if (strncmp(bootside, "a", 2) == 0) {
 			env_set("bootside", "b");
 			printf("Switching to slot B\n");
 		} else {
@@ -631,7 +634,7 @@ int ax3000_boot_fit_image(void)
 
 	/* Check DTB configuration */
 	fdt_conf = env_get("fdt_conf");
-	if (!fdt_conf || strlen(fdt_conf) == 0) {
+	if (!fdt_conf || strnlen(fdt_conf, 1) == 0) {
 		printf("\n");
 		printf("WARNING: No DTB configuration set!\n");
 		printf("Please use 'run show_dtbs' to see available configurations\n");
@@ -668,10 +671,10 @@ int ax3000_boot_fit_image(void)
 	}
 
 	/* Determine partition based on boot side */
-	if (strcmp(bootside, "a") == 0) {
+	if (strncmp(bootside, "a", 2) == 0) {
 		mmc_part = 2;
 		printf("Loading signed images from slot A...\n");
-	} else if (strcmp(bootside, "b") == 0) {
+	} else if (strncmp(bootside, "b", 2) == 0) {
 		mmc_part = 3;
 		printf("Loading signed images from slot B...\n");
 	} else {
