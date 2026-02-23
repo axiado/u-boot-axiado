@@ -24,4 +24,8 @@ config AXIADO_VERIFY_FIT
 	bool "Support for Axiado FIT verification"
 	default y
 
+config AXIADO_FAILOVER
+	bool "Support for Axiado failover mechanism"
+	default y
+
 endif
