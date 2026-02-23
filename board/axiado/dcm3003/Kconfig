@@ -6,17 +6,22 @@
 if TARGET_AX3000_EVK
 
 config SYS_BOARD
-        string
-        default "dcm3003"
+	string
+	default "dcm3003"
 
 config SYS_VENDOR
-        string
-        default "axiado"
+	string
+	default "axiado"
 
 config SYS_CONFIG_NAME
-        string
-        default "ax3000-evk"
+	string
+	default "ax3000-evk"
 
 config SYS_INIT_SP_BSS_OFFSET
 	default 524288
+
+config AXIADO_VERIFY_FIT
+	bool "Support for Axiado FIT verification"
+	default y
+
 endif
