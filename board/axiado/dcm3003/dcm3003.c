@@ -414,6 +414,7 @@ int mach_cpu_init(void)
  *
  * @return 0 on success, non-zero on failure
  */
+#ifdef CONFIG_AXIADO_VERIFY_FIT
 int board_verify_fit_image(ulong img_addr, ulong img_size)
 {
 	u32 spr_val;
@@ -515,6 +516,7 @@ int board_verify_fit_image(ulong img_addr, ulong img_size)
 		return -EACCES;
 	}
 }
+#endif
 
 /**
  * @brief Check boot count and switch slot if needed
@@ -638,7 +640,7 @@ int ax3000_boot_fit_image(void)
 	if (!fdt_conf || strnlen(fdt_conf, 1) == 0) {
 		printf("\n");
 		printf("WARNING: No DTB configuration set!\n");
-		printf("Please use 'run show_dtbs' to see available configurations\n");
+		printf("Please use 'show_dtbs' to see available configurations\n");
 		printf("Then set one with 'setenv fdt_conf <config-name>'\n");
 		printf("\n");
 		return -EINVAL;
@@ -674,15 +676,15 @@ int ax3000_boot_fit_image(void)
 	/* Determine partition based on boot side */
 	if (strncmp(bootside, "a", 2) == 0) {
 		mmc_part = 2;
-		printf("Loading signed images from slot A...\n");
+		printf("Loading images from slot A...\n");
 	} else if (strncmp(bootside, "b", 2) == 0) {
 		mmc_part = 3;
-		printf("Loading signed images from slot B...\n");
+		printf("Loading images from slot B...\n");
 	} else {
 		/* Boot from slot A by default */
 		bootside = "a";
 		mmc_part = 2;
-		printf("Loading signed images from slot A...\n");
+		printf("Loading images from default slot...\n");
 	}
 
 	/* Load FIT image from eMMC */
@@ -695,9 +697,13 @@ int ax3000_boot_fit_image(void)
 			return ret;
 	}
 
-	/* Calculate bootm address (loadaddr + 0x10) */
+	/* Calculate bootm address */
+#ifdef CONFIG_AXIADO_VERIFY_FIT
 	bootm_addr = loadaddr + 0x10;
-	printf("Loading signed fitImage using bootm...\n");
+#else
+	bootm_addr = loadaddr;
+#endif
+	printf("Loading fitImage using bootm...\n");
 
 	/* Build bootm command with DTB configuration */
 	snprintf(bootm_cmd, sizeof(bootm_cmd), "bootm 0x%08lx#%s", bootm_addr, fdt_conf);
@@ -738,5 +744,102 @@ static int do_ax3000_secure_boot(cmd_tbl_t *cmdtp, int flag, int argc, char *con
 U_BOOT_CMD(
 	ax3000_secure_boot, 1, 1, do_ax3000_secure_boot,
 	"Boot FIT image from eMMC with dual-boot slot support",
+	""
+);
+
+static int ax3000_show_dtbs(void)
+{
+	const char *bootside;
+	const char *image_path;
+	const char *loadaddr_str;
+	ulong loadaddr;
+	ulong fdt_addr;
+	int ret;
+	int mmc_dev = 0;
+	int mmc_part;
+	char dev_part_str[16];
+
+	printf("Loading FIT image to check available DTB configurations...\n");
+
+	/* Get current boot side */
+	bootside = env_get("bootside");
+	if (!bootside) {
+		bootside = "a";
+		env_set("bootside", "a");
+	}
+
+	/* Get image path */
+	image_path = env_get("image_path");
+	if (!image_path)
+		image_path = "fitImage";
+
+	/* Get load address */
+	loadaddr_str = env_get("loadaddr");
+	if (!loadaddr_str) {
+		loadaddr = CONFIG_SYS_LOAD_ADDR;
+	} else {
+		loadaddr = simple_strtoul(loadaddr_str, NULL, 16);
+	}
+
+	/* Determine partition based on boot side */
+	if (strncmp(bootside, "a", 2) == 0) {
+		mmc_part = 2;
+	} else if (strncmp(bootside, "b", 2) == 0) {
+		mmc_part = 3;
+	} else {
+		/* Boot from slot A by default */
+		bootside = "a";
+		mmc_part = 2;
+	}
+
+	/* Load FIT image from eMMC */
+	snprintf(dev_part_str, sizeof(dev_part_str), "%d:%d", mmc_dev, mmc_part);
+	ret = ax3000_load_fit_image("mmc", dev_part_str, image_path, loadaddr);
+	if (ret) {
+		/* Try legacy name */
+		ret = ax3000_load_fit_image("mmc", dev_part_str, "fitImage.asi", loadaddr);
+		if (ret)
+			return ret;
+	}
+
+	printf("Available DTB configurations:\n");
+
+	/* Calculate FDT address */
+#ifdef CONFIG_AXIADO_VERIFY_FIT
+	fdt_addr = loadaddr + 0x10;
+#else
+	fdt_addr = loadaddr;
+#endif
+	set_working_fdt_addr(fdt_addr);
+	return run_command("fdt list /configurations", 0);
+}
+
+/**
+ * @brief Command handler for ax3000_show_dtbs command
+ *
+ * @param cmdtp: Command table entry
+ * @param flag: Command flags
+ * @param argc: Argument count
+ * @param argv: Argument vector
+ * @return 0 on success, non-zero on failure
+ */
+static int do_ax3000_show_dtbs(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
+{
+	int ret;
+
+	ret = ax3000_show_dtbs();
+	if (ret) {
+		printf("Error: Could not load FIT image from current slot.\n");
+		printf("Make sure bootable media is inserted.\n");
+	} else {
+		printf("To change configuration: setenv fdt_conf <config-name>\n");
+		printf("Then save with: saveenv\n");
+	}
+	return ret;
+}
+
+U_BOOT_CMD(
+	show_dtbs, 1, 1, do_ax3000_show_dtbs,
+	"Command to show available DTB configurations",
 	""
 );

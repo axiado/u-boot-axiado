@@ -69,95 +69,14 @@
     "bootcount=0\0" \
     "bootlimit=3\0"
 
-#define ENV_BASIC_ENV_INFO \
-    "bootm_size=0x20000000\0" \
-    "fdtaddr=0x3EF00000\0" \
-    "loadaddr=0x3D000000\0"
-
 /* Secure operation settings for future use */
 #define ENV_SECURE_OPS_SETTINGS \
     "secure_boot=1\0" \
     /* Additional secure boot parameters will be added here in the future */ \
     "default_bootcmd=echo \"Booting in secure mode\"\0"
-/* DTB configuration helper commands */
-#define ENV_DTB_HELPER_SETTINGS \
-    /* Command to show available DTB configurations */ \
- "show_dtbs=" \
-        "echo \"Loading FIT image to check available DTB configurations...\"; " \
-        "if test \"${bootside}\" = \"a\"; then " \
-            "load mmc 0:2 ${loadaddr} ${image_path}; " \
-            "if test $? -ne 0; then " \
-                "load mmc 0:2 ${loadaddr} ${image_path}.asi; " \
-            "else " \
-                "true; " \
-            "fi; " \
-        "else " \
-            "load mmc 0:3 ${loadaddr} ${image_path}; " \
-            "if test $? -ne 0; then " \
-                "load mmc 0:3 ${loadaddr} ${image_path}.asi; " \
-            "else " \
-                "true; " \
-            "fi; " \
-        "fi; " \
-        "if test $? -eq 0; then " \
-            "setexpr newladdr $loadaddr + 0x10; " \
-            "echo \"\"; " \
-            "echo \"Available DTB configurations:\"; " \
-            "echo \"---------------------------\"; " \
-            "fdt addr ${newladdr}; " \
-            "fdt list /configurations; " \
-            "echo \"\"; " \
-            "echo \"Current configuration: ${fdt_conf}\"; " \
-            "echo \"\"; " \
-            "echo \"To change configuration: setenv fdt_conf <config-name>\"; " \
-            "echo \"Then save with: saveenv\"; " \
-        "else " \
-            "echo \"Error: Could not load FIT image from current slot.\"; " \
-            "echo \"Make sure bootable media is inserted.\"; " \
-        "fi\0" \
-    \
- "show_dtbs_bkup=" \
-        "echo \"Listing files to check available DTB configurations...\"; " \
-        "echo \"\"; " \
-        "echo \"Select DTB configuration file from below available DTB files. Ex: scm3000db_sb.asi.\"; " \
-        "echo \"---------------------------\"; " \
-        "if test \"${bootside}\" = \"a\"; then " \
-            "ls mmc 0:2; " \
-            "if test $? -ne 0; then " \
-                "echo \"Error: Could not list files from slot A.\"; " \
-                "echo \"Make sure bootable media is inserted.\"; " \
-                "exit; " \
-            "fi; " \
-        "else " \
-            "ls mmc 0:3; " \
-            "if test $? -ne 0; then " \
-                "echo \"Error: Could not list files from slot B.\"; " \
-                "echo \"Make sure bootable media is inserted.\"; " \
-                "exit; " \
-            "fi; " \
-        "fi; " \
-        "echo \"\"; " \
-        "echo \"Current configuration: ${fdt_conf}\"; " \
-        "echo \"\"; " \
-        "echo \"To change configuration: setenv fdt_conf <config-name>\"; " \
-        "echo \"Then save with: saveenv\"; " \
-        "\0" \
-    \
-    /* Command to set a DTB configuration */ \
-    "set_dtb=" \
-        "if test $# -eq 1; then " \
-            "setenv fdt_conf $1; " \
-            "saveenv; " \
-            "echo \"Set DTB configuration to: $1\"; " \
-            "echo \"This will be used on next boot.\"; " \
-        "else " \
-            "echo \"Usage: run set_dtb <config-name>\"; " \
-            "echo \"Available configurations can be viewed with: run show_dtbs\"; " \
-        "fi\0"
 
 /* Unsecure operation settings */
 #define ENV_UNSECURE_OPS_SETTINGS \
-    "image_path=fitImage\0" \
     "bootcmd=ax3000_secure_boot\0" \
     "secure_boot=0\0" \
     "default_bootcmd=ax3000_secure_boot\0"
@@ -168,14 +87,11 @@
 #if defined(CONFIG_TARGET_AX3000_EVK)
   #if (CURRENT_OPS_MODE == ENV_SECURE_OPS)
     #define CONFIG_EXTRA_ENV_SETTINGS \
-      ENV_BASIC_ENV_INFO \
       ENV_SECURE_OPS_SETTINGS \
       ""
   #else
     #define CONFIG_EXTRA_ENV_SETTINGS \
-      ENV_BASIC_ENV_INFO \
       ENV_DUAL_BOOT_SETTINGS \
-      ENV_DTB_HELPER_SETTINGS \
       ENV_UNSECURE_OPS_SETTINGS \
       ""
   #endif
