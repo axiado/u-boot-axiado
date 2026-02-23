@@ -523,6 +523,7 @@ int board_verify_fit_image(ulong img_addr, ulong img_size)
  *
  * @return 0 on success, non-zero on failure
  */
+#ifdef CONFIG_AXIADO_FAILOVER
 static int ax3000_check_boot_count(void)
 {
 	const char *bootside;
@@ -563,6 +564,12 @@ static int ax3000_check_boot_count(void)
 
 	return 0;
 }
+#else
+static int ax3000_check_boot_count(void)
+{
+	return 0;
+}
+#endif
 
 /**
  * @brief Load FIT image from storage
