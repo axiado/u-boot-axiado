@@ -30,10 +30,10 @@
 #define CONFIG_NR_CPUS			4
 /* This address points to a start address in the DDR */
 #define CONFIG_SYS_SDRAM_BASE		0x3C000000
-#define CONFIG_SYS_SDRAM_SIZE 		64 /* Reserve 64M */
+#define CONFIG_SYS_SDRAM_SIZE		SZ_1G
 #define CONFIG_SYS_INIT_SP_ADDR		(CONFIG_SYS_SDRAM_BASE + SZ_1M)
 #define CONFIG_SYS_MEMTEST_START	CONFIG_SYS_SDRAM_BASE
-#define CONFIG_SYS_MEMTEST_END          ((CONFIG_SYS_SDRAM_SIZE - 3) << 20)
+#define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_SDRAM_SIZE - (3 * SZ_1M))
 
 #define CONFIG_SYS_LOAD_ADDR		0x3D000000
 
@@ -54,7 +54,7 @@
 	{ 4800, 9600, 19200, 38400, 57600, 115200 }
 
 /* for bigger files */
-#define CONFIG_SYS_BOOTM_LEN	0x2000000
+#define CONFIG_SYS_BOOTM_LEN	0x20000000
 
 /* Define secure and unsecure operation modes */
 #define ENV_SECURE_OPS 0
