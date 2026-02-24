@@ -325,7 +325,9 @@ int timer_init(void)
 		div0_val = ((reg_val >> REG_CPU_PLL_POSTDIV_FLD_POSTDIV0_0_LSB) & (POST_DIV_BITS_MASK));
 		div1_val = ((reg_val >> REG_CPU_PLL_POSTDIV_FLD_POSTDIV1_0_LSB) & (POST_DIV_BITS_MASK));
 		counter_frq = (AX_PLL_CLK_4000MHZ / ((div0_val + 1) * (div1_val + 1))); /* Calculate the counter frq value */
-		raw_write_cntfrq_el0(counter_frq);	
+		if (current_el() == 3)
+			raw_write_cntfrq_el0(counter_frq);
+
 	} else {
 		/**
 		* Control should not reach here...
