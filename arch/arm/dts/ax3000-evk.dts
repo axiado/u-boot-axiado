@@ -15,21 +15,19 @@
 
 	chosen {
 		bootargs = "console=ttyPS0,115200 earlyprintk earlycon nr_cpus=4 maxcpus=4";
-        stdout-path = "serial3:115200";
+		stdout-path = "serial3:115200";
 	};
 
 	memory@0 {
 		device_type = "memory";
-		reg = <0x00 0x3C000000 0x00 0x1000000>,
-			<0x00000000 0x3D000000 0x00000000 0x23000000>,
-			<0x00000004 0x00000000 0x00000000 0x80000000>;
+		reg = <0x00 0x3C000000 0x00 0x44000000>;
 	};
 };
 
-&uart3{
-	status = "Okay";
+&uart3 {
+	status = "okay";
 };
 
-&sdhci0{
+&sdhci0 {
 	status = "okay";
 };
