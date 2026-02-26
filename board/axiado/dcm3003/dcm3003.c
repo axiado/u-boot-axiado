@@ -31,7 +31,7 @@ static struct mm_region axiado_ax3000_mem_map[] = {
 	{
 		.virt = 0x3C000000UL,
 		.phys = 0x3C000000UL,
-		.size = 0x44000000UL,
+		.size = PHYS_SDRAM_SIZE,
 		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
 		PTE_BLOCK_INNER_SHARE
 	}, {
@@ -255,7 +255,7 @@ int dram_init(void)
 int dram_init_banksize(void)
 {
 	gd->bd->bi_dram[0].start = 0x3C000000ULL;
-	gd->bd->bi_dram[0].size = 0x44000000ULL;
+	gd->bd->bi_dram[0].size = PHYS_SDRAM_SIZE;
 
 	gd->bd->bi_dram[1].start = 0x400000000ULL;
 	gd->bd->bi_dram[1].size = 0x80000000ULL;
